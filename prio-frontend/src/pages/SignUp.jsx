@@ -2,9 +2,11 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../services/AuthContext";
 
-export default function Login() {
+export default function Signup() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { register } = useAuth();
+
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -14,8 +16,9 @@ export default function Login() {
     e.preventDefault();
     setError("");
     setLoading(true);
+
     try {
-      await login(email, password);
+      await register(name, email, password);
       navigate("/dashboard");
     } catch (err) {
       setError(err.message);
@@ -26,33 +29,39 @@ export default function Login() {
 
   return (
     <div>
-      <h1>PRIO LOGIN PAGE</h1>
+      <h1>Signup</h1>
+
       <form onSubmit={handleSubmit}>
+        <input
+          type="text"
+          placeholder="Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+        />
+
         <input
           type="email"
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          disabled={loading}
         />
+
         <input
           type="password"
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          disabled={loading}
         />
+
         <button type="submit" disabled={loading}>
-          {loading ? "Logging in..." : "Login"}
+          {loading ? "Creating account..." : "Sign Up"}
         </button>
       </form>
+
       {error && <p style={{ color: "red" }}>{error}</p>}
-      <p>Don't have an account?</p>
-      <button onClick={() => navigate("/signup")}>
-        Sign Up
-      </button>
     </div>
   );
 }
