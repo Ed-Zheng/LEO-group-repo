@@ -1,0 +1,120 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return request.auth.uid == uid;
+    }
+
+    function isGroupMember(groupId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/groups/$(groupId)/members/$(request.auth.uid));
+    }
+
+    function isGroupAdmin(groupId) {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/groups/$(groupId)/members/$(request.auth.uid)).data.role
+          in ['owner', 'admin'];
+    }
+
+    function isGroupOwner(groupId) {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/groups/$(groupId)/members/$(request.auth.uid)).data.role
+          == 'owner';
+    }
+
+    function isTaskGroupMember() {
+      let groupId = resource.data.groupId;
+      return isGroupMember(groupId);
+    }
+
+    // ── Users ─────────────────────────────────────────────────────────────────
+
+    match /users/{uid} {
+      allow read:   if isSignedIn();
+      allow create: if isOwner(uid);
+      allow update: if isOwner(uid);
+      allow delete: if false;
+    }
+
+    // ── Groups ────────────────────────────────────────────────────────────────
+
+    match /groups/{groupId} {
+      allow read:   if isGroupMember(groupId);
+      allow create: if isSignedIn();
+      allow update: if isGroupAdmin(groupId);
+      allow delete: if isGroupOwner(groupId);
+
+      match /members/{uid} {
+        allow read:   if isGroupMember(groupId);
+        allow write:  if isGroupAdmin(groupId) || isOwner(uid);
+      }
+    }
+
+    // ── Tasks ─────────────────────────────────────────────────────────────────
+
+    match /tasks/{taskId} {
+      allow read:   if isTaskGroupMember();
+      allow create: if isSignedIn() && isGroupMember(request.resource.data.groupId);
+      allow update: if isTaskGroupMember();
+      allow delete: if isTaskGroupMember();
+
+      match /subtasks/{subtaskId} {
+        allow read, write: if isGroupMember(resource == null
+          ? get(/databases/$(database)/documents/tasks/$(taskId)).data.groupId
+          : get(/databases/$(database)/documents/tasks/$(taskId)).data.groupId);
+      }
+
+      match /messages/{messageId} {
+        allow read:  if isGroupMember(get(/databases/$(database)/documents/tasks/$(taskId)).data.groupId);
+        allow create: if isGroupMember(get(/databases/$(database)/documents/tasks/$(taskId)).data.groupId)
+                        && request.resource.data.authorId == request.auth.uid;
+        allow update: if resource.data.authorId == request.auth.uid
+                        || isGroupAdmin(get(/databases/$(database)/documents/tasks/$(taskId)).data.groupId);
+        allow delete: if resource.data.authorId == request.auth.uid
+                        || isGroupAdmin(get(/databases/$(database)/documents/tasks/$(taskId)).data.groupId);
+      }
+
+      match /notes/{noteId} {
+        allow read:   if isGroupMember(get(/databases/$(database)/documents/tasks/$(taskId)).data.groupId);
+        allow create: if isGroupMember(get(/databases/$(database)/documents/tasks/$(taskId)).data.groupId)
+                        && request.resource.data.authorId == request.auth.uid;
+        allow update, delete: if resource.data.authorId == request.auth.uid
+                                 || isGroupAdmin(get(/databases/$(database)/documents/tasks/$(taskId)).data.groupId);
+      }
+    }
+
+    // ── Expenses ──────────────────────────────────────────────────────────────
+
+    match /expenses/{expenseId} {
+      allow read:   if isGroupMember(resource.data.groupId);
+      allow create: if isSignedIn() && isGroupMember(request.resource.data.groupId)
+                      && request.resource.data.submittedBy == request.auth.uid;
+      allow update, delete: if resource.data.submittedBy == request.auth.uid
+                               || isGroupAdmin(resource.data.groupId);
+    }
+
+    // ── Notifications ─────────────────────────────────────────────────────────
+
+    match /notifications/{notificationId} {
+      allow read:   if isOwner(resource.data.recipientId);
+      allow update: if isOwner(resource.data.recipientId);
+      allow create: if isSignedIn();
+      allow delete: if isOwner(resource.data.recipientId);
+    }
+
+    // ── Audit Logs ────────────────────────────────────────────────────────────
+
+    match /auditLogs/{logId} {
+      allow read:  if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if false;
+    }
+  }
+}
