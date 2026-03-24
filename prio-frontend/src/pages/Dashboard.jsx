@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../services/AuthContext";
 import TaskList from "../components/TaskList";
 import Navbar from "../components/Navbar";
 
@@ -11,6 +13,18 @@ export default function Dashboard() {
   const [showForm, setShowForm] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newPriority, setNewPriority] = useState("Medium");
+
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
 
   function handleCreateTask() {
     if (!newTitle.trim()) return;
@@ -60,6 +74,10 @@ export default function Dashboard() {
       )}
 
       <TaskList tasks={tasks} />
+
+      <button onClick={handleLogout}>
+        Logout
+      </button>
     </div>
   );
 }
