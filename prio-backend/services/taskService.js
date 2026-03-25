@@ -72,4 +72,3 @@ export async function deleteTask(taskId, actorId) {
   await ref.delete();
   await logAudit(actorId, "task.deleted", "task", taskId, before, null);
 }
-
