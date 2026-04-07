@@ -1,137 +1,102 @@
 import { useState } from "react";
+import TaskForm from "./TaskForm";
 
-export default function TaskCard({ task, onDelete, onUpdate }) {
+export default function TaskCard({ task, onDelete, onUpdate, groupMembers = [] }) {
   const [isEditing, setIsEditing] = useState(false);
-  const [editedTitle, setEditedTitle] = useState(task.title);
-  const [editedPriority, setEditedPriority] = useState(task.priority);
   const [showDetails, setShowDetails] = useState(false);
 
   const priorityColors = {
     High: "#ef4444",
     Medium: "#f59e0b",
-    Low: "#10b981"
+    Low: "#10b981",
   };
 
-  function handleSave() {
-    onUpdate(task.id, {
-      ...task,
-      title: editedTitle,
-      priority: editedPriority
-    });
-    setIsEditing(false);
-  }
   const statusColors = {
-    "Pending": "#6b7280",
+    Pending: "#6b7280",
     "In Progress": "#2563eb",
-    "Completed": "#10b981"
+    Completed: "#10b981",
   };
+
+  const editMembers =
+    groupMembers.length > 0
+      ? groupMembers
+      : task.assignees?.map((assignee) => ({
+          uid: assignee.uid,
+          displayName: assignee.displayName,
+          email: assignee.email,
+        })) || [];
 
   return (
-    <div style={{
-      backgroundColor: "#1f2937",
-      borderRadius: "10px",
-      padding: "15px",
-      marginBottom: "15px",
-      boxShadow: "0 2px 6px rgba(0,0,0,0.4)"
-    }}>
-
+    <div
+      style={{
+        backgroundColor: "#1f2937",
+        borderRadius: "10px",
+        padding: "15px",
+        marginBottom: "15px",
+        boxShadow: "0 2px 6px rgba(0,0,0,0.4)",
+      }}
+    >
       {isEditing ? (
-        <>
-          {/* Edit Mode */}
-          <input
-            value={editedTitle}
-            onChange={(e) => setEditedTitle(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "8px",
-              marginBottom: "10px",
-              borderRadius: "5px",
-              border: "1px solid #6b7280",
-              backgroundColor: "#111827",
-              color: "#fff"
-            }}
-          />
-
-          <select
-            value={editedPriority}
-            onChange={(e) => setEditedPriority(e.target.value)}
-            style={{
-              padding: "8px",
-              marginBottom: "10px",
-              borderRadius: "5px",
-              backgroundColor: "#111827",
-              color: "#fff",
-              border: "1px solid #6b7280"
-            }}
-          >
-            <option>Low</option>
-            <option>Medium</option>
-            <option>High</option>
-          </select>
-
-          <button
-            onClick={handleSave}
-            style={{
-              marginRight: "10px",
-              backgroundColor: "#2563eb",
-              color: "white",
-              border: "none",
-              padding: "6px 10px",
-              borderRadius: "5px",
-              cursor: "pointer"
-            }}
-          >
-            Save
-          </button>
-
-          <button
-            onClick={() => setIsEditing(false)}
-            style={{
-              backgroundColor: "#6b7280",
-              color: "white",
-              border: "none",
-              padding: "6px 10px",
-              borderRadius: "5px",
-              cursor: "pointer"
-            }}
-          >
-            Cancel
-          </button>
-        </>
+        <TaskForm
+          initialData={{
+            title: task.title || "",
+            description: task.description || "",
+            priority: normalizePriority(task.priority),
+            status: normalizeStatus(task.status),
+            deadline: task.deadline || "",
+            assignees: task.assignees || [],
+          }}
+          groupMembers={editMembers}
+          onSubmit={async (updatedData) => {
+            await onUpdate(task.id, {
+              ...task,
+              title: updatedData.title,
+              description: updatedData.description,
+              priority: formatPriority(updatedData.priority),
+              status: formatStatus(updatedData.status),
+              deadline: updatedData.deadline,
+              assigneeIds: updatedData.assigneeIds || [],
+              assignees: updatedData.assignees || [],
+            });
+            setIsEditing(false);
+          }}
+          onCancel={() => setIsEditing(false)}
+        />
       ) : (
         <>
-          {/* Normal View */}
-          <h3 style={{ color: "#f9fafb", marginBottom: "10px" }}>
-            {task.title}
-          </h3>
+          <h3 style={{ color: "#f9fafb", marginBottom: "10px" }}>{task.title}</h3>
 
-          <div style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center"
-          }}>
-          <span style={{
-            backgroundColor: priorityColors[task.priority],
-            color: "white",
-            padding: "4px 8px",
-            borderRadius: "5px",
-            fontSize: "12px"
-          }}>
-            {task.priority}
-          </span>
-
-          <select
-            value={task.status}
-            onChange={(e) =>
-              onUpdate(task.id, { ...task, status: e.target.value })
-            }
+          <div
             style={{
-              backgroundColor: statusColors[task.status],
-              color: "white",
-              border: "none",
-              borderRadius: "5px",
-              padding: "4px 8px"
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
             }}
+          >
+            <span
+              style={{
+                backgroundColor: priorityColors[task.priority],
+                color: "white",
+                padding: "4px 8px",
+                borderRadius: "5px",
+                fontSize: "12px",
+              }}
+            >
+              {task.priority}
+            </span>
+
+            <select
+              value={task.status}
+              onChange={(e) =>
+                onUpdate(task.id, { ...task, status: e.target.value })
+              }
+              style={{
+                backgroundColor: statusColors[task.status],
+                color: "white",
+                border: "none",
+                borderRadius: "5px",
+                padding: "4px 8px",
+              }}
             >
               <option>Pending</option>
               <option>In Progress</option>
@@ -149,7 +114,7 @@ export default function TaskCard({ task, onDelete, onUpdate }) {
                 border: "none",
                 padding: "6px 10px",
                 borderRadius: "5px",
-                cursor: "pointer"
+                cursor: "pointer",
               }}
             >
               Edit
@@ -163,53 +128,86 @@ export default function TaskCard({ task, onDelete, onUpdate }) {
                 border: "none",
                 padding: "6px 10px",
                 borderRadius: "5px",
-                cursor: "pointer"
+                cursor: "pointer",
               }}
             >
               Delete
             </button>
 
             <button
-            onClick={() => setShowDetails(prev => !prev)}
-            style={{
-              marginTop: "10px",
-              backgroundColor: "#374151",
-              color: "white",
-              border: "none",
-              padding: "5px 10px",
-              borderRadius: "5px",
-              cursor: "pointer"
-            }}
-          >
-            {showDetails ? "Hide Details" : "View Details"}
-          </button>
-          {showDetails && (
-            <div style={{
-              marginTop: "10px",
-              padding: "10px",
-              backgroundColor: "#111827",
-              borderRadius: "8px",
-              color: "#e5e7eb"
-            }}>
-              {task.description && (
-                <p><strong>Description:</strong> {task.description}</p>
-              )}
+              onClick={() => setShowDetails((prev) => !prev)}
+              style={{
+                marginTop: "10px",
+                backgroundColor: "#374151",
+                color: "white",
+                border: "none",
+                padding: "5px 10px",
+                borderRadius: "5px",
+                cursor: "pointer",
+                display: "block",
+              }}
+            >
+              {showDetails ? "Hide Details" : "View Details"}
+            </button>
 
-              {task.deadline && (
-                <p><strong>Deadline:</strong> {task.deadline}</p>
-              )}
+            {showDetails && (
+              <div
+                style={{
+                  marginTop: "10px",
+                  padding: "10px",
+                  backgroundColor: "#111827",
+                  borderRadius: "8px",
+                  color: "#e5e7eb",
+                }}
+              >
+                {task.description && (
+                  <p>
+                    <strong>Description:</strong> {task.description}
+                  </p>
+                )}
 
-              {task.assignees && task.assignees.length > 0 && (
-                <p>
-                  <strong>Assigned to:</strong>{" "}
-                  {task.assignees.map(a => a.displayName || a.email).join(", ")}
-                </p>
-              )}
-            </div>
-          )}
+                {task.deadline && (
+                  <p>
+                    <strong>Deadline:</strong> {task.deadline}
+                  </p>
+                )}
+
+                {task.assignees && task.assignees.length > 0 && (
+                  <p>
+                    <strong>Assigned to:</strong>{" "}
+                    {task.assignees
+                      .map((a) => a.displayName || a.email)
+                      .join(", ")}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </>
       )}
     </div>
   );
+}
+
+function normalizePriority(priority) {
+  if (!priority) return "medium";
+  return priority.toLowerCase();
+}
+
+function normalizeStatus(status) {
+  if (!status) return "pending";
+  return status.toLowerCase().replace(/\s+/g, "_");
+}
+
+function formatPriority(priority) {
+  if (!priority) return "Medium";
+  const value = priority.toLowerCase();
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function formatStatus(status) {
+  if (!status) return "Pending";
+  const value = status.toLowerCase();
+  if (value === "in_progress") return "In Progress";
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }

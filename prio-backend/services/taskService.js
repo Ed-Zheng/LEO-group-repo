@@ -4,13 +4,13 @@ import { logAudit } from "./auditService.js";
 
 export async function createTask(taskData, createdBy) {
   const payload = {
-    groupId: taskData.groupId,
+    groupId: taskData.groupId ?? null,
     title: taskData.title.trim(),
     description: taskData.description?.trim() ?? null,
     priority: taskData.priority ?? "medium",
     status: taskData.status ?? "pending",
     deadline: taskData.deadline ?? null,
-    assigneeIds: taskData.assigneeIds ?? [],
+    assigneeIds: taskData.assigneeIds ?? [createdBy],
     createdBy,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -40,7 +40,6 @@ export async function getUserTasks(uid) {
   const snap = await db
     .collection("tasks")
     .where("assigneeIds", "array-contains", uid)
-    .orderBy("createdAt", "desc")
     .get();
 
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -51,8 +50,12 @@ export async function updateTask(taskId, updates, actorId) {
   const beforeSnap = await ref.get();
   const before = beforeSnap.exists ? beforeSnap.data() : null;
 
+  const cleanedUpdates = Object.fromEntries(
+    Object.entries(updates).filter(([, value]) => value !== undefined)
+  );
+
   const payload = {
-    ...updates,
+    ...cleanedUpdates,
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };
 

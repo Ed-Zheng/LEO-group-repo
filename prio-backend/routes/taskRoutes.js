@@ -1,5 +1,12 @@
 import express from "express";
-import { createTask, getTask, getGroupTasks } from "../services/taskService.js";
+import {
+  createTask,
+  getTask,
+  getGroupTasks,
+  getUserTasks,
+  updateTask,
+  deleteTask,
+} from "../services/taskService.js";
 
 const router = express.Router();
 
@@ -33,16 +40,37 @@ router.get("/:id", async (req, res) => {
 // POST /tasks
 router.post("/", async (req, res) => {
   try {
-    const { groupId, title, description, priority, status, deadline, assigneeIds, createdBy } = req.body;
+    const {
+      groupId,
+      title,
+      description,
+      priority,
+      status,
+      deadline,
+      assigneeIds,
+      createdBy,
+    } = req.body;
 
-    if (!groupId || !title || !createdBy) {
+    if (!title || !createdBy) {
       return res.status(400).json({
-        error: "groupId, title, and createdBy are required",
+        error: "title and createdBy are required",
       });
     }
 
+    const finalAssigneeIds = Array.from(
+      new Set([...(assigneeIds || []), createdBy])
+    );
+
     const taskId = await createTask(
-      { groupId, title, description, priority, status, deadline, assigneeIds },
+      {
+        groupId: groupId ?? null,
+        title,
+        description,
+        priority,
+        status,
+        deadline,
+        assigneeIds: finalAssigneeIds,
+      },
       createdBy
     );
 
