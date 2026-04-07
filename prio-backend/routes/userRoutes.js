@@ -1,7 +1,17 @@
 import express from "express";
-import { createUser } from "../services/userService.js";
+import { createUser, getAllUsers } from "../services/userService.js";
 
 const router = express.Router();
+
+router.get("/", async (req, res) => {
+  try {
+    const users = await getAllUsers();
+    res.json(users);
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    res.status(500).json({ error: "Failed to fetch users" });
+  }
+});
 
 router.post("/", async (req, res) => {
   try {
