@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../services/AuthContext";
 import Navbar from "../components/Navbar";
@@ -7,11 +7,53 @@ import TaskForm from "../components/TaskForm";
 
 export default function Dashboard() {
   const [tasks, setTasks] = useState([]);
+  const [users, setUsers] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [loadingTasks, setLoadingTasks] = useState(true);
+  const [loadingUsers, setLoadingUsers] = useState(true);
 
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  const selectableUsers = useMemo(() => {
+    return users
+      .filter((u) => u.uid !== user?.uid)
+      .map((u) => ({
+        uid: u.uid,
+        displayName: u.name,
+        email: u.email,
+      }));
+  }, [users, user]);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setLoadingUsers(true);
+        const res = await fetch("http://localhost:5000/users");
+
+        const text = await res.text();
+        let data = [];
+
+        try {
+          data = text ? JSON.parse(text) : [];
+        } catch {
+          data = [];
+        }
+
+        if (!res.ok) {
+          throw new Error(data.error || "Failed to fetch users");
+        }
+
+        setUsers(data);
+      } catch (error) {
+        console.error("Failed to fetch users:", error);
+      } finally {
+        setLoadingUsers(false);
+      }
+    };
+
+    fetchUsers();
+  }, []);
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -22,23 +64,41 @@ export default function Dashboard() {
 
         const res = await fetch(`http://localhost:5000/tasks/user/${user.uid}`);
 
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(text || "Failed to fetch user tasks");
+        const text = await res.text();
+        let data = [];
+
+        try {
+          data = text ? JSON.parse(text) : [];
+        } catch {
+          data = [];
         }
 
-        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || "Failed to fetch user tasks");
+        }
 
         const normalizedTasks = data.map((task) => ({
           ...task,
           priority: formatPriority(task.priority),
           status: formatStatus(task.status),
           assignees:
-            task.assigneeIds?.map((uid) => ({
-              uid,
-              displayName: uid === user.uid ? "You" : uid,
-              email: uid === user.uid ? user.email : uid,
-            })) || [],
+            task.assigneeIds?.map((uid) => {
+              const matchedUser = users.find((u) => u.uid === uid);
+
+              if (uid === user.uid) {
+                return {
+                  uid,
+                  displayName: matchedUser?.name || "You",
+                  email: matchedUser?.email || user.email,
+                };
+              }
+
+              return {
+                uid,
+                displayName: matchedUser?.name || uid,
+                email: matchedUser?.email || uid,
+              };
+            }) || [],
         }));
 
         setTasks(normalizedTasks);
@@ -49,8 +109,10 @@ export default function Dashboard() {
       }
     };
 
-    fetchTasks();
-  }, [user]);
+    if (!loadingUsers) {
+      fetchTasks();
+    }
+  }, [user, users, loadingUsers]);
 
   const handleLogout = async () => {
     try {
@@ -73,7 +135,14 @@ export default function Dashboard() {
         }),
       });
 
-      const data = await res.json();
+      const text = await res.text();
+      let data = {};
+
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        data = { error: text };
+      }
 
       if (!res.ok) {
         throw new Error(data.error || "Failed to delete task");
@@ -87,10 +156,25 @@ export default function Dashboard() {
 
   async function handleUpdateTask(id, updatedTask) {
     try {
-      const assigneeIds =
+      const existingTask = tasks.find((task) => task.id === id);
+      if (!existingTask) return;
+
+      const requestedAssigneeIds =
         updatedTask.assigneeIds ||
         updatedTask.assignees?.map((assignee) => assignee.uid) ||
-        [user.uid];
+        [];
+
+      const isCreator = existingTask.createdBy === user.uid;
+
+      const finalAssigneeIds = isCreator
+        ? Array.from(new Set([...requestedAssigneeIds, existingTask.createdBy]))
+        : Array.from(
+            new Set([
+              ...(existingTask.assigneeIds || []),
+              ...requestedAssigneeIds,
+              existingTask.createdBy,
+            ])
+          );
 
       const payload = {
         title: updatedTask.title,
@@ -98,7 +182,7 @@ export default function Dashboard() {
         priority: normalizePriority(updatedTask.priority),
         status: normalizeStatus(updatedTask.status),
         deadline: updatedTask.deadline ?? null,
-        assigneeIds,
+        assigneeIds: finalAssigneeIds,
         actorId: user.uid,
       };
 
@@ -128,15 +212,29 @@ export default function Dashboard() {
           task.id === id
             ? {
                 ...updatedTask,
+                ...existingTask,
                 id,
-                assigneeIds,
-                assignees:
-                  updatedTask.assignees ||
-                  assigneeIds.map((uid) => ({
+                title: updatedTask.title,
+                description: updatedTask.description ?? null,
+                deadline: updatedTask.deadline ?? null,
+                assigneeIds: finalAssigneeIds,
+                assignees: finalAssigneeIds.map((uid) => {
+                  const matchedUser = users.find((u) => u.uid === uid);
+
+                  if (uid === user.uid) {
+                    return {
+                      uid,
+                      displayName: matchedUser?.name || "You",
+                      email: matchedUser?.email || user.email,
+                    };
+                  }
+
+                  return {
                     uid,
-                    displayName: uid === user.uid ? "You" : uid,
-                    email: uid === user.uid ? user.email : uid,
-                  })),
+                    displayName: matchedUser?.name || uid,
+                    email: matchedUser?.email || uid,
+                  };
+                }),
                 priority: formatPriority(normalizePriority(updatedTask.priority)),
                 status: formatStatus(normalizeStatus(updatedTask.status)),
               }
@@ -257,7 +355,14 @@ export default function Dashboard() {
                       }),
                     });
 
-                    const data = await res.json();
+                    const text = await res.text();
+                    let data = {};
+
+                    try {
+                      data = text ? JSON.parse(text) : {};
+                    } catch {
+                      data = { error: text };
+                    }
 
                     if (!res.ok) {
                       throw new Error(data.error || "Failed to create task");
@@ -271,11 +376,23 @@ export default function Dashboard() {
                       status: formatStatus(taskData.status),
                       deadline: taskData.deadline,
                       assigneeIds: finalAssigneeIds,
-                      assignees: finalAssigneeIds.map((uid) => ({
-                        uid,
-                        displayName: uid === user.uid ? "You" : uid,
-                        email: uid === user.uid ? user.email : uid,
-                      })),
+                      assignees: finalAssigneeIds.map((uid) => {
+                        const matchedUser = users.find((u) => u.uid === uid);
+
+                        if (uid === user.uid) {
+                          return {
+                            uid,
+                            displayName: matchedUser?.name || "You",
+                            email: matchedUser?.email || user.email,
+                          };
+                        }
+
+                        return {
+                          uid,
+                          displayName: matchedUser?.name || uid,
+                          email: matchedUser?.email || uid,
+                        };
+                      }),
                       createdBy: user.uid,
                     };
 
@@ -286,7 +403,7 @@ export default function Dashboard() {
                   }
                 }}
                 onCancel={() => setShowForm(false)}
-                groupMembers={[]}
+                groupMembers={selectableUsers}
               />
             </div>
           )}
@@ -298,7 +415,8 @@ export default function Dashboard() {
               tasks={tasks}
               onDelete={handleDeleteTask}
               onUpdate={handleUpdateTask}
-              groupMembers={[]}
+              groupMembers={selectableUsers}
+              currentUserId={user?.uid}
             />
           )}
         </div>

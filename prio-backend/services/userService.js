@@ -6,3 +6,12 @@ export const createUser = async (uid, name, email) => {
     email,
   });
 };
+
+export const getAllUsers = async () => {
+  const snap = await db.collection("users").get();
+
+  return snap.docs.map((doc) => ({
+    uid: doc.id,
+    ...doc.data(),
+  }));
+};

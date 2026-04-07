@@ -1,9 +1,17 @@
 import { useState } from "react";
 import TaskForm from "./TaskForm";
 
-export default function TaskCard({ task, onDelete, onUpdate, groupMembers = [] }) {
+export default function TaskCard({
+  task,
+  onDelete,
+  onUpdate,
+  groupMembers = [],
+  currentUserId,
+}) {
   const [isEditing, setIsEditing] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+
+  if (!task) return null;
 
   const priorityColors = {
     High: "#ef4444",
@@ -17,6 +25,8 @@ export default function TaskCard({ task, onDelete, onUpdate, groupMembers = [] }
     Completed: "#10b981",
   };
 
+  const isCreator = currentUserId === task?.createdBy;
+
   const editMembers =
     groupMembers.length > 0
       ? groupMembers
@@ -25,6 +35,10 @@ export default function TaskCard({ task, onDelete, onUpdate, groupMembers = [] }
           displayName: assignee.displayName,
           email: assignee.email,
         })) || [];
+
+  const lockedAssigneeIds = isCreator
+    ? [task.createdBy]
+    : Array.from(new Set([...(task.assigneeIds || []), task.createdBy])).filter(Boolean);
 
   return (
     <div
@@ -47,6 +61,7 @@ export default function TaskCard({ task, onDelete, onUpdate, groupMembers = [] }
             assignees: task.assignees || [],
           }}
           groupMembers={editMembers}
+          lockedAssigneeIds={lockedAssigneeIds}
           onSubmit={async (updatedData) => {
             await onUpdate(task.id, {
               ...task,
@@ -75,7 +90,7 @@ export default function TaskCard({ task, onDelete, onUpdate, groupMembers = [] }
           >
             <span
               style={{
-                backgroundColor: priorityColors[task.priority],
+                backgroundColor: priorityColors[task.priority] || "#6b7280",
                 color: "white",
                 padding: "4px 8px",
                 borderRadius: "5px",
@@ -87,11 +102,9 @@ export default function TaskCard({ task, onDelete, onUpdate, groupMembers = [] }
 
             <select
               value={task.status}
-              onChange={(e) =>
-                onUpdate(task.id, { ...task, status: e.target.value })
-              }
+              onChange={(e) => onUpdate(task.id, { ...task, status: e.target.value })}
               style={{
-                backgroundColor: statusColors[task.status],
+                backgroundColor: statusColors[task.status] || "#6b7280",
                 color: "white",
                 border: "none",
                 borderRadius: "5px",
@@ -175,9 +188,7 @@ export default function TaskCard({ task, onDelete, onUpdate, groupMembers = [] }
                 {task.assignees && task.assignees.length > 0 && (
                   <p>
                     <strong>Assigned to:</strong>{" "}
-                    {task.assignees
-                      .map((a) => a.displayName || a.email)
-                      .join(", ")}
+                    {task.assignees.map((a) => a.displayName || a.email).join(", ")}
                   </p>
                 )}
               </div>
