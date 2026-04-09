@@ -4,9 +4,13 @@ import { useAuth } from "../services/AuthContext";
 import Navbar from "../components/Navbar";
 import TaskList from "../components/TaskList";
 import TaskForm from "../components/TaskForm";
+import CreateGroup from "../components/CreateGroup";
+import JoinGroup from "../components/JoinGroup";
+import GroupMembers from "../components/GroupMembers";
 
 export default function Dashboard() {
   const [tasks, setTasks] = useState([]);
+  const [groupMembers, setGroupMembers] = useState([]);
   const [users, setUsers] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [loadingTasks, setLoadingTasks] = useState(true);
@@ -16,14 +20,16 @@ export default function Dashboard() {
   const navigate = useNavigate();
 
   const selectableUsers = useMemo(() => {
-    return users
-      .filter((u) => u.uid !== user?.uid)
-      .map((u) => ({
-        uid: u.uid,
-        displayName: u.name,
-        email: u.email,
-      }));
-  }, [users, user]);
+    return groupMembers.length > 0
+      ? groupMembers.filter((u) => u.uid !== user?.uid)
+      : users
+          .filter((u) => u.uid !== user?.uid)
+          .map((u) => ({
+            uid: u.uid,
+            displayName: u.name,
+            email: u.email,
+          }));
+  }, [groupMembers, users, user]);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -304,6 +310,51 @@ export default function Dashboard() {
               marginBottom: "15px",
             }}
           >
+            <div
+              style={{
+                backgroundColor: "#374151",
+                padding: "20px",
+                borderRadius: "10px",
+                marginBottom: "20px",
+              }}
+            >
+              <h2 style={{ color: "#f9fafb", marginBottom: "15px" }}>
+                Team Collaboration
+              </h2>
+
+              <CreateGroup
+                onCreate={(newGroup) => {
+                  console.log("Created group:", newGroup);
+                }}
+              />
+
+              <JoinGroup
+                onJoin={(joinedGroup) => {
+                  console.log("Joined group:", joinedGroup);
+
+                  // temporary mock teammates until backend is ready
+                  setGroupMembers([
+                    {
+                      uid: "101",
+                      displayName: "Alex",
+                      email: "alex@email.com",
+                    },
+                    {
+                      uid: "102",
+                      displayName: "Sarah",
+                      email: "sarah@email.com",
+                    },
+                    {
+                      uid: user.uid,
+                      displayName: "You",
+                      email: user.email,
+                    },
+                  ]);
+                }}
+              />
+
+              <GroupMembers members={groupMembers} />
+            </div>
             <h2 style={{ color: "#e5e7eb" }}>Your Tasks</h2>
 
             <button
