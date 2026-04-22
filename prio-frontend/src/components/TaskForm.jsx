@@ -41,19 +41,22 @@ export default function TaskForm({
   onCancel,
   groupMembers = [],
   lockedAssigneeIds = [],
+  fixedParentTaskId = null,
 }) {
   const isEdit = Boolean(initialData);
+  const isSubtaskMode = Boolean(fixedParentTaskId);
 
   const [form, setForm] = useState({
-    title:       initialData?.title       ?? "",
+    title: initialData?.title ?? "",
     description: initialData?.description ?? "",
-    priority:    initialData?.priority    ?? "medium",
-    status:      initialData?.status      ?? "pending",
-    deadline:    initialData?.deadline    ?? "",
+    priority: initialData?.priority ?? "medium",
+    status: initialData?.status ?? "pending",
+    deadline: initialData?.deadline ?? "",
     assigneeIds: initialData?.assignees?.map((a) => a.uid) ?? [],
+    isMajorTask: initialData?.isMajorTask ?? false,
   });
 
-  const [errors,    setErrors]    = useState({});
+  const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
   const set = (key, val) => {
@@ -70,7 +73,11 @@ export default function TaskForm({
 
   const handleSubmit = async () => {
     const errs = validate();
-    if (Object.keys(errs).length) { setErrors(errs); return; }
+    if (Object.keys(errs).length) {
+      setErrors(errs);
+      return;
+    }
+
     setSubmitting(true);
     try {
       const finalAssigneeIds = Array.from(
@@ -79,10 +86,12 @@ export default function TaskForm({
 
       await onSubmit?.({
         ...form,
-        title:    form.title.trim(),
+        title: form.title.trim(),
         deadline: form.deadline || null,
         assigneeIds: finalAssigneeIds,
         assignees: groupMembers.filter((m) => finalAssigneeIds.includes(m.uid)),
+        isMajorTask: isSubtaskMode ? false : form.isMajorTask,
+        parentTaskId: fixedParentTaskId ?? initialData?.parentTaskId ?? null,
       });
     } finally {
       setSubmitting(false);
@@ -111,7 +120,7 @@ export default function TaskForm({
         <input
           value={form.title}
           onChange={(e) => set("title", e.target.value)}
-          placeholder="Task title"
+          placeholder={isSubtaskMode ? "Subtask title" : "Task title"}
           style={{ ...inputStyle, borderColor: errors.title ? "#ef4444" : "#e5e7eb" }}
           onFocus={(e) => (e.target.style.borderColor = "#3b82f6")}
           onBlur={(e) =>
@@ -212,9 +221,7 @@ export default function TaskForm({
                     gap: 6,
                     padding: "5px 10px",
                     borderRadius: 99,
-                    border: `1.5px solid ${
-                      selected ? "#3b82f6" : "#e5e7eb"
-                    }`,
+                    border: `1.5px solid ${selected ? "#3b82f6" : "#e5e7eb"}`,
                     background: selected ? "#eff6ff" : "#fff",
                     color: selected ? "#3b82f6" : "#374151",
                     fontSize: "13px",
@@ -282,7 +289,13 @@ export default function TaskForm({
             transition: "background 0.15s",
           }}
         >
-          {submitting ? "Saving…" : isEdit ? "Save changes" : "Create task"}
+          {submitting
+            ? "Saving…"
+            : isSubtaskMode
+            ? "Create subtask"
+            : isEdit
+            ? "Save changes"
+            : "Create task"}
         </button>
       </div>
     </div>
