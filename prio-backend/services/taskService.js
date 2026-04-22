@@ -12,6 +12,8 @@ export async function createTask(taskData, createdBy) {
     deadline: taskData.deadline ?? null,
     assigneeIds: taskData.assigneeIds ?? [createdBy],
     createdBy,
+    isMajorTask: taskData.isMajorTask ?? false,
+    parentTaskId: taskData.parentTaskId ?? null,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };

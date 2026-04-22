@@ -3,13 +3,18 @@ import TaskForm from "./TaskForm";
 
 export default function TaskCard({
   task,
+  subtasks = [],
   onDelete,
   onUpdate,
+  onCreateSubtask,
   groupMembers = [],
   currentUserId,
+  depth = 0,
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [showSubtasks, setShowSubtasks] = useState(true);
+  const [showSubtaskForm, setShowSubtaskForm] = useState(false);
 
   if (!task) return null;
 
@@ -26,6 +31,7 @@ export default function TaskCard({
   };
 
   const isCreator = currentUserId === task?.createdBy;
+  const isMajorTask = Boolean(task.isMajorTask) && !task.parentTaskId;
 
   const editMembers =
     groupMembers.length > 0
@@ -38,130 +44,208 @@ export default function TaskCard({
 
   const lockedAssigneeIds = isCreator
     ? [task.createdBy]
-    : Array.from(new Set([...(task.assigneeIds || []), task.createdBy])).filter(Boolean);
+    : Array.from(
+        new Set([...(task.assigneeIds || []), task.createdBy])
+      ).filter(Boolean);
 
   return (
     <div
       style={{
-        backgroundColor: "#1f2937",
-        borderRadius: "10px",
-        padding: "15px",
-        marginBottom: "15px",
-        boxShadow: "0 2px 6px rgba(0,0,0,0.4)",
+        marginLeft: depth > 0 ? "28px" : "0",
+        borderLeft: depth > 0 ? "3px solid #374151" : "none",
+        paddingLeft: depth > 0 ? "16px" : "0",
       }}
     >
-      {isEditing ? (
-        <TaskForm
-          initialData={{
-            title: task.title || "",
-            description: task.description || "",
-            priority: normalizePriority(task.priority),
-            status: normalizeStatus(task.status),
-            deadline: task.deadline || "",
-            assignees: task.assignees || [],
-          }}
-          groupMembers={editMembers}
-          lockedAssigneeIds={lockedAssigneeIds}
-          onSubmit={async (updatedData) => {
-            await onUpdate(task.id, {
-              ...task,
-              title: updatedData.title,
-              description: updatedData.description,
-              priority: formatPriority(updatedData.priority),
-              status: formatStatus(updatedData.status),
-              deadline: updatedData.deadline,
-              assigneeIds: updatedData.assigneeIds || [],
-              assignees: updatedData.assignees || [],
-            });
-            setIsEditing(false);
-          }}
-          onCancel={() => setIsEditing(false)}
-        />
-      ) : (
-        <>
-          <h3 style={{ color: "#f9fafb", marginBottom: "10px" }}>{task.title}</h3>
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
+      <div
+        style={{
+          backgroundColor: task.parentTaskId ? "#243041" : "#1f2937",
+          borderRadius: "10px",
+          padding: "15px",
+          marginBottom: "15px",
+          boxShadow: "0 2px 6px rgba(0,0,0,0.4)",
+        }}
+      >
+        {isEditing ? (
+          <TaskForm
+            initialData={{
+              title: task.title || "",
+              description: task.description || "",
+              priority: normalizePriority(task.priority),
+              status: normalizeStatus(task.status),
+              deadline: task.deadline || "",
+              assignees: task.assignees || [],
+              isMajorTask: task.isMajorTask || false,
+              parentTaskId: task.parentTaskId || null,
             }}
-          >
-            <span
+            groupMembers={editMembers}
+            lockedAssigneeIds={lockedAssigneeIds}
+            fixedParentTaskId={task.parentTaskId || null}
+            onSubmit={async (updatedData) => {
+              await onUpdate(task.id, {
+                ...task,
+                title: updatedData.title,
+                description: updatedData.description,
+                priority: formatPriority(updatedData.priority),
+                status: formatStatus(updatedData.status),
+                deadline: updatedData.deadline,
+                assigneeIds: updatedData.assigneeIds || [],
+                assignees: updatedData.assignees || [],
+                isMajorTask: updatedData.isMajorTask ?? task.isMajorTask,
+                parentTaskId: updatedData.parentTaskId ?? task.parentTaskId,
+              });
+              setIsEditing(false);
+            }}
+            onCancel={() => setIsEditing(false)}
+          />
+        ) : (
+          <>
+            <div
               style={{
-                backgroundColor: priorityColors[task.priority] || "#6b7280",
-                color: "white",
-                padding: "4px 8px",
-                borderRadius: "5px",
-                fontSize: "12px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: "10px",
               }}
             >
-              {task.priority}
-            </span>
+              <h3 style={{ color: "#f9fafb", marginBottom: "10px", marginTop: 0 }}>
+                {isMajorTask ? "📁 " : task.parentTaskId ? "↳ " : ""}
+                {task.title}
+              </h3>
 
-            <select
-              value={task.status}
-              onChange={(e) => onUpdate(task.id, { ...task, status: e.target.value })}
-              style={{
-                backgroundColor: statusColors[task.status] || "#6b7280",
-                color: "white",
-                border: "none",
-                borderRadius: "5px",
-                padding: "4px 8px",
-              }}
-            >
-              <option>Pending</option>
-              <option>In Progress</option>
-              <option>Completed</option>
-            </select>
-          </div>
+              {isMajorTask && (
+                <span
+                  style={{
+                    backgroundColor: "#4f46e5",
+                    color: "white",
+                    padding: "4px 8px",
+                    borderRadius: "5px",
+                    fontSize: "12px",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Major Task
+                </span>
+              )}
+            </div>
 
-          <div style={{ marginTop: "12px" }}>
-            <button
-              onClick={() => setIsEditing(true)}
+            <div
               style={{
-                marginRight: "10px",
-                backgroundColor: "#2563eb",
-                color: "white",
-                border: "none",
-                padding: "6px 10px",
-                borderRadius: "5px",
-                cursor: "pointer",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
               }}
             >
-              Edit
-            </button>
+              <span
+                style={{
+                  backgroundColor: priorityColors[task.priority] || "#6b7280",
+                  color: "white",
+                  padding: "4px 8px",
+                  borderRadius: "5px",
+                  fontSize: "12px",
+                }}
+              >
+                {task.priority}
+              </span>
 
-            <button
-              onClick={() => onDelete(task.id)}
-              style={{
-                backgroundColor: "#dc2626",
-                color: "white",
-                border: "none",
-                padding: "6px 10px",
-                borderRadius: "5px",
-                cursor: "pointer",
-              }}
-            >
-              Delete
-            </button>
+              <select
+                value={task.status}
+                onChange={(e) => onUpdate(task.id, { ...task, status: e.target.value })}
+                style={{
+                  backgroundColor: statusColors[task.status] || "#6b7280",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "5px",
+                  padding: "4px 8px",
+                }}
+              >
+                <option>Pending</option>
+                <option>In Progress</option>
+                <option>Completed</option>
+              </select>
+            </div>
 
-            <button
-              onClick={() => setShowDetails((prev) => !prev)}
+            <div
               style={{
-                marginTop: "10px",
-                backgroundColor: "#374151",
-                color: "white",
-                border: "none",
-                padding: "5px 10px",
-                borderRadius: "5px",
-                cursor: "pointer",
-                display: "block",
+                marginTop: "12px",
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "10px",
               }}
             >
-              {showDetails ? "Hide Details" : "View Details"}
-            </button>
+              <button
+                onClick={() => setIsEditing(true)}
+                style={{
+                  backgroundColor: "#2563eb",
+                  color: "white",
+                  border: "none",
+                  padding: "6px 10px",
+                  borderRadius: "5px",
+                  cursor: "pointer",
+                }}
+              >
+                Edit
+              </button>
+
+              <button
+                onClick={() => onDelete(task.id)}
+                style={{
+                  backgroundColor: "#dc2626",
+                  color: "white",
+                  border: "none",
+                  padding: "6px 10px",
+                  borderRadius: "5px",
+                  cursor: "pointer",
+                }}
+              >
+                Delete
+              </button>
+
+              {isMajorTask && (
+                <button
+                  onClick={() => setShowSubtaskForm((prev) => !prev)}
+                  style={{
+                    backgroundColor: "#0f766e",
+                    color: "white",
+                    border: "none",
+                    padding: "6px 10px",
+                    borderRadius: "5px",
+                    cursor: "pointer",
+                  }}
+                >
+                  {showSubtaskForm ? "Cancel Subtask" : "Add Subtask"}
+                </button>
+              )}
+
+              {isMajorTask && subtasks.length > 0 && (
+                <button
+                  onClick={() => setShowSubtasks((prev) => !prev)}
+                  style={{
+                    backgroundColor: "#475569",
+                    color: "white",
+                    border: "none",
+                    padding: "6px 10px",
+                    borderRadius: "5px",
+                    cursor: "pointer",
+                  }}
+                >
+                  {showSubtasks ? "Hide Subtasks" : `Show Subtasks (${subtasks.length})`}
+                </button>
+              )}
+
+              <button
+                onClick={() => setShowDetails((prev) => !prev)}
+                style={{
+                  backgroundColor: "#374151",
+                  color: "white",
+                  border: "none",
+                  padding: "6px 10px",
+                  borderRadius: "5px",
+                  cursor: "pointer",
+                }}
+              >
+                {showDetails ? "Hide Details" : "View Details"}
+              </button>
+            </div>
 
             {showDetails && (
               <div
@@ -191,10 +275,58 @@ export default function TaskCard({
                     {task.assignees.map((a) => a.displayName || a.email).join(", ")}
                   </p>
                 )}
+
+                {task.parentTaskId && (
+                  <p>
+                    <strong>Type:</strong> Subtask
+                  </p>
+                )}
               </div>
             )}
-          </div>
-        </>
+          </>
+        )}
+      </div>
+
+      {showSubtaskForm && isMajorTask && (
+        <div
+          style={{
+            backgroundColor: "#374151",
+            padding: "16px",
+            borderRadius: "10px",
+            marginBottom: "15px",
+            marginLeft: "28px",
+          }}
+        >
+          <TaskForm
+            fixedParentTaskId={task.id}
+            groupMembers={groupMembers}
+            lockedAssigneeIds={[currentUserId].filter(Boolean)}
+            onSubmit={async (subtaskData) => {
+              await onCreateSubtask(task, subtaskData);
+              setShowSubtaskForm(false);
+              setShowSubtasks(true);
+            }}
+            onCancel={() => setShowSubtaskForm(false)}
+          />
+        </div>
+      )}
+
+      {showSubtasks && subtasks.length > 0 && (
+        <div style={{ marginTop: "8px" }}>
+          {subtasks.map((subtask) => (
+            <TaskCard
+              key={subtask.id}
+              task={subtask}
+              subtasks={[]}
+              onDelete={onDelete}
+              onUpdate={onUpdate}
+              onCreateSubtask={onCreateSubtask}
+              groupMembers={groupMembers}
+              currentUserId={currentUserId}
+              depth={depth + 1}
+            />
+          ))}
+        </div>
       )}
     </div>
   );

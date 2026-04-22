@@ -87,24 +87,10 @@ export default function Dashboard() {
           ...task,
           priority: formatPriority(task.priority),
           status: formatStatus(task.status),
+          isMajorTask: Boolean(task.isMajorTask),
+          parentTaskId: task.parentTaskId ?? null,
           assignees:
-            task.assigneeIds?.map((uid) => {
-              const matchedUser = users.find((u) => u.uid === uid);
-
-              if (uid === user.uid) {
-                return {
-                  uid,
-                  displayName: matchedUser?.name || "You",
-                  email: matchedUser?.email || user.email,
-                };
-              }
-
-              return {
-                uid,
-                displayName: matchedUser?.name || uid,
-                email: matchedUser?.email || uid,
-              };
-            }) || [],
+            task.assigneeIds?.map((uid) => resolveAssignee(uid, users, user)) || [],
         }));
 
         setTasks(normalizedTasks);
@@ -131,6 +117,22 @@ export default function Dashboard() {
 
   async function handleDeleteTask(id) {
     try {
+      const childIds = tasks
+        .filter((task) => task.parentTaskId === id)
+        .map((task) => task.id);
+
+      for (const childId of childIds) {
+        await fetch(`http://localhost:5000/tasks/${childId}`, {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            actorId: user.uid,
+          }),
+        });
+      }
+
       const res = await fetch(`http://localhost:5000/tasks/${id}`, {
         method: "DELETE",
         headers: {
@@ -154,7 +156,9 @@ export default function Dashboard() {
         throw new Error(data.error || "Failed to delete task");
       }
 
-      setTasks((prev) => prev.filter((task) => task.id !== id));
+      setTasks((prev) =>
+        prev.filter((task) => task.id !== id && task.parentTaskId !== id)
+      );
     } catch (error) {
       console.error("Delete task failed:", error);
     }
@@ -190,6 +194,8 @@ export default function Dashboard() {
         deadline: updatedTask.deadline ?? null,
         assigneeIds: finalAssigneeIds,
         actorId: user.uid,
+        isMajorTask: updatedTask.isMajorTask ?? existingTask.isMajorTask ?? false,
+        parentTaskId: updatedTask.parentTaskId ?? existingTask.parentTaskId ?? null,
       };
 
       const res = await fetch(`http://localhost:5000/tasks/${id}`, {
@@ -224,25 +230,15 @@ export default function Dashboard() {
                 description: updatedTask.description ?? null,
                 deadline: updatedTask.deadline ?? null,
                 assigneeIds: finalAssigneeIds,
-                assignees: finalAssigneeIds.map((uid) => {
-                  const matchedUser = users.find((u) => u.uid === uid);
-
-                  if (uid === user.uid) {
-                    return {
-                      uid,
-                      displayName: matchedUser?.name || "You",
-                      email: matchedUser?.email || user.email,
-                    };
-                  }
-
-                  return {
-                    uid,
-                    displayName: matchedUser?.name || uid,
-                    email: matchedUser?.email || uid,
-                  };
-                }),
+                assignees: finalAssigneeIds.map((uid) =>
+                  resolveAssignee(uid, users, user)
+                ),
                 priority: formatPriority(normalizePriority(updatedTask.priority)),
                 status: formatStatus(normalizeStatus(updatedTask.status)),
+                isMajorTask:
+                  updatedTask.isMajorTask ?? existingTask.isMajorTask ?? false,
+                parentTaskId:
+                  updatedTask.parentTaskId ?? existingTask.parentTaskId ?? null,
               }
             : task
         )
@@ -250,6 +246,73 @@ export default function Dashboard() {
     } catch (error) {
       console.error("Update task failed:", error);
     }
+  }
+
+  async function handleCreateTask(taskData) {
+    try {
+      const finalAssigneeIds = Array.from(
+        new Set([...(taskData.assigneeIds || []), user.uid])
+      );
+
+      const res = await fetch("http://localhost:5000/tasks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: taskData.title,
+          description: taskData.description,
+          priority: taskData.priority,
+          status: taskData.status,
+          deadline: taskData.deadline,
+          assigneeIds: finalAssigneeIds,
+          createdBy: user.uid,
+          groupId: null,
+          isMajorTask: taskData.isMajorTask ?? false,
+          parentTaskId: taskData.parentTaskId ?? null,
+        }),
+      });
+
+      const text = await res.text();
+      let data = {};
+
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        data = { error: text };
+      }
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to create task");
+      }
+
+      const newTask = {
+        id: data.id,
+        title: taskData.title,
+        description: taskData.description,
+        priority: formatPriority(taskData.priority),
+        status: formatStatus(taskData.status),
+        deadline: taskData.deadline,
+        assigneeIds: finalAssigneeIds,
+        assignees: finalAssigneeIds.map((uid) => resolveAssignee(uid, users, user)),
+        createdBy: user.uid,
+        isMajorTask: taskData.isMajorTask ?? false,
+        parentTaskId: taskData.parentTaskId ?? null,
+      };
+
+      setTasks((prev) => [newTask, ...prev]);
+      setShowForm(false);
+    } catch (error) {
+      console.error("Create task failed:", error);
+    }
+  }
+
+  async function handleCreateSubtask(parentTask, subtaskData) {
+    await handleCreateTask({
+      ...subtaskData,
+      isMajorTask: false,
+      parentTaskId: parentTask.id,
+    });
   }
 
   return (
@@ -301,7 +364,52 @@ export default function Dashboard() {
             </button>
           </div>
 
-          {/* Task Header */}
+          <div
+            style={{
+              backgroundColor: "#374151",
+              padding: "20px",
+              borderRadius: "10px",
+              marginBottom: "20px",
+            }}
+          >
+            <h2 style={{ color: "#f9fafb", marginBottom: "15px" }}>
+              Team Collaboration
+            </h2>
+
+            <CreateGroup
+              onCreate={(newGroup) => {
+                console.log("Created group:", newGroup);
+              }}
+            />
+
+            <JoinGroup
+              onJoin={(joinedGroup) => {
+                console.log("Joined group:", joinedGroup);
+
+                  // temporary mock teammates until backend is ready
+                setGroupMembers([
+                  {
+                    uid: "101",
+                    displayName: "Alex",
+                    email: "alex@email.com",
+                  },
+                  {
+                    uid: "102",
+                    displayName: "Sarah",
+                    email: "sarah@email.com",
+                  },
+                  {
+                    uid: user.uid,
+                    displayName: "You",
+                    email: user.email,
+                  },
+                ]);
+              }}
+            />
+
+            <GroupMembers members={groupMembers} />
+          </div>
+
           <div
             style={{
               display: "flex",
@@ -310,51 +418,6 @@ export default function Dashboard() {
               marginBottom: "15px",
             }}
           >
-            <div
-              style={{
-                backgroundColor: "#374151",
-                padding: "20px",
-                borderRadius: "10px",
-                marginBottom: "20px",
-              }}
-            >
-              <h2 style={{ color: "#f9fafb", marginBottom: "15px" }}>
-                Team Collaboration
-              </h2>
-
-              <CreateGroup
-                onCreate={(newGroup) => {
-                  console.log("Created group:", newGroup);
-                }}
-              />
-
-              <JoinGroup
-                onJoin={(joinedGroup) => {
-                  console.log("Joined group:", joinedGroup);
-
-                  // temporary mock teammates until backend is ready
-                  setGroupMembers([
-                    {
-                      uid: "101",
-                      displayName: "Alex",
-                      email: "alex@email.com",
-                    },
-                    {
-                      uid: "102",
-                      displayName: "Sarah",
-                      email: "sarah@email.com",
-                    },
-                    {
-                      uid: user.uid,
-                      displayName: "You",
-                      email: user.email,
-                    },
-                  ]);
-                }}
-              />
-
-              <GroupMembers members={groupMembers} />
-            </div>
             <h2 style={{ color: "#e5e7eb" }}>Your Tasks</h2>
 
             <button
@@ -383,76 +446,7 @@ export default function Dashboard() {
               }}
             >
               <TaskForm
-                onSubmit={async (taskData) => {
-                  try {
-                    const finalAssigneeIds = Array.from(
-                      new Set([...(taskData.assigneeIds || []), user.uid])
-                    );
-
-                    const res = await fetch("http://localhost:5000/tasks", {
-                      method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                      },
-                      body: JSON.stringify({
-                        title: taskData.title,
-                        description: taskData.description,
-                        priority: taskData.priority,
-                        status: taskData.status,
-                        deadline: taskData.deadline,
-                        assigneeIds: finalAssigneeIds,
-                        createdBy: user.uid,
-                        groupId: null,
-                      }),
-                    });
-
-                    const text = await res.text();
-                    let data = {};
-
-                    try {
-                      data = text ? JSON.parse(text) : {};
-                    } catch {
-                      data = { error: text };
-                    }
-
-                    if (!res.ok) {
-                      throw new Error(data.error || "Failed to create task");
-                    }
-
-                    const newTask = {
-                      id: data.id,
-                      title: taskData.title,
-                      description: taskData.description,
-                      priority: formatPriority(taskData.priority),
-                      status: formatStatus(taskData.status),
-                      deadline: taskData.deadline,
-                      assigneeIds: finalAssigneeIds,
-                      assignees: finalAssigneeIds.map((uid) => {
-                        const matchedUser = users.find((u) => u.uid === uid);
-
-                        if (uid === user.uid) {
-                          return {
-                            uid,
-                            displayName: matchedUser?.name || "You",
-                            email: matchedUser?.email || user.email,
-                          };
-                        }
-
-                        return {
-                          uid,
-                          displayName: matchedUser?.name || uid,
-                          email: matchedUser?.email || uid,
-                        };
-                      }),
-                      createdBy: user.uid,
-                    };
-
-                    setTasks((prev) => [newTask, ...prev]);
-                    setShowForm(false);
-                  } catch (error) {
-                    console.error("Create task failed:", error);
-                  }
-                }}
+                onSubmit={handleCreateTask}
                 onCancel={() => setShowForm(false)}
                 groupMembers={selectableUsers}
               />
@@ -466,6 +460,7 @@ export default function Dashboard() {
               tasks={tasks}
               onDelete={handleDeleteTask}
               onUpdate={handleUpdateTask}
+              onCreateSubtask={handleCreateSubtask}
               groupMembers={selectableUsers}
               currentUserId={user?.uid}
             />
@@ -474,6 +469,24 @@ export default function Dashboard() {
       </div>
     </div>
   );
+}
+
+function resolveAssignee(uid, users, currentUser) {
+  const matchedUser = users.find((u) => u.uid === uid);
+
+  if (uid === currentUser?.uid) {
+    return {
+      uid,
+      displayName: matchedUser?.name || matchedUser?.displayName || "You",
+      email: matchedUser?.email || currentUser?.email || "",
+    };
+  }
+
+  return {
+    uid,
+    displayName: matchedUser?.name || matchedUser?.displayName || "Unknown User",
+    email: matchedUser?.email || "",
+  };
 }
 
 function normalizePriority(priority) {
