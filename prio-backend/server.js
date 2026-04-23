@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+
 import noteRoutes from "./routes/noteRoutes.js";
 import taskRoutes from "./routes/taskRoutes.js";
 import groupRoutes from "./routes/groupRoutes.js";
@@ -8,10 +9,6 @@ import notificationRoutes from "./routes/notificationRoutes.js";
 import auditRoutes from "./routes/auditRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
-import expenseRoutes from "./routes/expenseRoutes.js";
-import notificationRoutes from "./routes/notificationRoutes.js";
-import auditRoutes from "./routes/auditRoutes.js";
-import messageRoutes from "./routes/messageRoutes.js";
 
 const app = express();
 const allowedOrigin = process.env.FRONTEND_ORIGIN || "http://localhost:5173";
@@ -49,6 +46,7 @@ app.use("/notifications", notificationRoutes);
 app.use("/audit", auditRoutes);
 app.use("/messages", messageRoutes);
 app.use("/notes", noteRoutes);
+app.use("/users", userRoutes);
 
 const PORT = 5000;
 const HOST = process.env.HOST || "127.0.0.1";
