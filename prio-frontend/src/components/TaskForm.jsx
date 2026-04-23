@@ -41,19 +41,23 @@ export default function TaskForm({
   onCancel,
   groupMembers = [],
   lockedAssigneeIds = [],
+  fixedParentTaskId = null,
 }) {
   const isEdit = Boolean(initialData);
+  const isSubtaskMode = Boolean(fixedParentTaskId);
 
   const [form, setForm] = useState({
-    title:       initialData?.title       ?? "",
+    title: initialData?.title ?? "",
     description: initialData?.description ?? "",
-    priority:    initialData?.priority    ?? "medium",
-    status:      initialData?.status      ?? "pending",
-    deadline:    initialData?.deadline    ?? "",
+    priority: initialData?.priority ?? "medium",
+    status: initialData?.status ?? "pending",
+    deadline: initialData?.deadline ?? "",
     assigneeIds: initialData?.assignees?.map((a) => a.uid) ?? [],
+    isMajorTask: initialData?.isMajorTask ?? false,
+    parentTaskId: initialData?.parentTaskId ?? null,
   });
 
-  const [errors,    setErrors]    = useState({});
+  const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
   const set = (key, val) => {
@@ -70,7 +74,11 @@ export default function TaskForm({
 
   const handleSubmit = async () => {
     const errs = validate();
-    if (Object.keys(errs).length) { setErrors(errs); return; }
+    if (Object.keys(errs).length) {
+      setErrors(errs);
+      return;
+    }
+
     setSubmitting(true);
     try {
       const finalAssigneeIds = Array.from(
@@ -79,10 +87,12 @@ export default function TaskForm({
 
       await onSubmit?.({
         ...form,
-        title:    form.title.trim(),
+        title: form.title.trim(),
         deadline: form.deadline || null,
         assigneeIds: finalAssigneeIds,
         assignees: groupMembers.filter((m) => finalAssigneeIds.includes(m.uid)),
+        isMajorTask: isSubtaskMode ? false : form.isMajorTask,
+        parentTaskId: isSubtaskMode ? fixedParentTaskId : form.parentTaskId,
       });
     } finally {
       setSubmitting(false);
@@ -126,6 +136,27 @@ export default function TaskForm({
       </div>
 
       {/* Description */}
+      {!isSubtaskMode && (
+        <div>
+          <label style={labelStyle}>Task Type</label>
+          <button
+            type="button"
+            onClick={() => set("isMajorTask", !form.isMajorTask)}
+            style={{
+              padding: "10px 14px",
+              borderRadius: "8px",
+              border: "none",
+              backgroundColor: form.isMajorTask ? "#4f46e5" : "#374151",
+              color: "white",
+              cursor: "pointer",
+              fontWeight: 600,
+            }}
+          >
+            {form.isMajorTask ? "Major Task: On" : "Make Major Task"}
+          </button>
+        </div>
+      )}
+
       <div>
         <label style={labelStyle}>Description</label>
         <textarea
@@ -217,9 +248,7 @@ export default function TaskForm({
                     gap: 6,
                     padding: "5px 10px",
                     borderRadius: 99,
-                    border: `1.5px solid ${
-                      selected ? "#3b82f6" : "#e5e7eb"
-                    }`,
+                    border: `1.5px solid ${selected ? "#3b82f6" : "#e5e7eb"}`,
                     background: selected ? "#eff6ff" : "#fff",
                     color: selected ? "#3b82f6" : "#374151",
                     fontSize: "13px",

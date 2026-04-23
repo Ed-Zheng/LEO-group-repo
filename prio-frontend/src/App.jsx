@@ -7,6 +7,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import TaskDetails from "./pages/TaskDetails";
 import SignUp from "./pages/SignUp";
+import TaskDetails from "./pages/TaskDetails";
 
 function App() {
   if (firebaseSetupError) {
@@ -22,6 +23,7 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/tasks/:id" element={<TaskDetails />} />
           <Route path="/signup" element={<SignUp />} />
+          <Route path="/tasks/:taskId" element={<TaskDetails />} />
         </Routes>
       </AuthProvider>
     </Router>

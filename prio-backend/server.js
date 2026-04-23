@@ -3,6 +3,10 @@ import cors from "cors";
 import noteRoutes from "./routes/noteRoutes.js";
 import taskRoutes from "./routes/taskRoutes.js";
 import groupRoutes from "./routes/groupRoutes.js";
+import expenseRoutes from "./routes/expenseRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
+import auditRoutes from "./routes/auditRoutes.js";
+import messageRoutes from "./routes/messageRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import expenseRoutes from "./routes/expenseRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
@@ -33,7 +37,6 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json());
-app.use("/users", userRoutes);
 
 app.get("/", (req, res) => {
   res.send("Prio backend running");

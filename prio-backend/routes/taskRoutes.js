@@ -58,6 +58,8 @@ router.put("/:id", async (req, res) => {
       deadline,
       assigneeIds,
       actorId,
+      isMajorTask,
+      parentTaskId,
     } = req.body;
 
     if (!actorId) {
@@ -92,6 +94,8 @@ router.put("/:id", async (req, res) => {
         status,
         deadline,
         assigneeIds: finalAssigneeIds,
+        isMajorTask,
+        parentTaskId,
       },
       actorId
     );
@@ -130,6 +134,8 @@ router.post("/", async (req, res) => {
       deadline,
       assigneeIds,
       createdBy,
+      isMajorTask,
+      parentTaskId,
     } = req.body;
 
     if (!title || !createdBy) {
@@ -151,6 +157,8 @@ router.post("/", async (req, res) => {
         status,
         deadline,
         assigneeIds: finalAssigneeIds,
+        isMajorTask: isMajorTask ?? false,
+        parentTaskId: parentTaskId ?? null,
       },
       createdBy
     );

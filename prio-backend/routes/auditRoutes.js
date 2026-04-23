@@ -6,6 +6,7 @@ import {
 
 const router = express.Router();
 
+// GET /audit/entity/:entityId
 router.get("/entity/:entityId", async (req, res) => {
   try {
     const maxResults = req.query.limit ? Number(req.query.limit) : 50;
