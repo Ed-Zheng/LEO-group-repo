@@ -7,6 +7,7 @@ import expenseRoutes from "./routes/expenseRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import auditRoutes from "./routes/auditRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
 
 const app = express();
 
@@ -26,6 +27,7 @@ app.use("/notifications", notificationRoutes);
 app.use("/audit", auditRoutes);
 app.use("/messages", messageRoutes);
 app.use("/notes", noteRoutes);
+app.use("/users", userRoutes);
 
 const PORT = 5000;
 

@@ -54,6 +54,7 @@ export default function TaskForm({
     deadline: initialData?.deadline ?? "",
     assigneeIds: initialData?.assignees?.map((a) => a.uid) ?? [],
     isMajorTask: initialData?.isMajorTask ?? false,
+    parentTaskId: initialData?.parentTaskId ?? null,
   });
 
   const [errors, setErrors] = useState({});
@@ -91,7 +92,7 @@ export default function TaskForm({
         assigneeIds: finalAssigneeIds,
         assignees: groupMembers.filter((m) => finalAssigneeIds.includes(m.uid)),
         isMajorTask: isSubtaskMode ? false : form.isMajorTask,
-        parentTaskId: fixedParentTaskId ?? initialData?.parentTaskId ?? null,
+        parentTaskId: isSubtaskMode ? fixedParentTaskId : form.parentTaskId,
       });
     } finally {
       setSubmitting(false);
@@ -120,7 +121,7 @@ export default function TaskForm({
         <input
           value={form.title}
           onChange={(e) => set("title", e.target.value)}
-          placeholder={isSubtaskMode ? "Subtask title" : "Task title"}
+          placeholder="Task title"
           style={{ ...inputStyle, borderColor: errors.title ? "#ef4444" : "#e5e7eb" }}
           onFocus={(e) => (e.target.style.borderColor = "#3b82f6")}
           onBlur={(e) =>
@@ -135,6 +136,27 @@ export default function TaskForm({
       </div>
 
       {/* Description */}
+      {!isSubtaskMode && (
+        <div>
+          <label style={labelStyle}>Task Type</label>
+          <button
+            type="button"
+            onClick={() => set("isMajorTask", !form.isMajorTask)}
+            style={{
+              padding: "10px 14px",
+              borderRadius: "8px",
+              border: "none",
+              backgroundColor: form.isMajorTask ? "#4f46e5" : "#374151",
+              color: "white",
+              cursor: "pointer",
+              fontWeight: 600,
+            }}
+          >
+            {form.isMajorTask ? "Major Task: On" : "Make Major Task"}
+          </button>
+        </div>
+      )}
+
       <div>
         <label style={labelStyle}>Description</label>
         <textarea
@@ -289,13 +311,7 @@ export default function TaskForm({
             transition: "background 0.15s",
           }}
         >
-          {submitting
-            ? "Saving…"
-            : isSubtaskMode
-            ? "Create subtask"
-            : isEdit
-            ? "Save changes"
-            : "Create task"}
+          {submitting ? "Saving…" : isEdit ? "Save changes" : "Create task"}
         </button>
       </div>
     </div>

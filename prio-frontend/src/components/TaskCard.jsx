@@ -1,5 +1,6 @@
 import { useState } from "react";
 import TaskForm from "./TaskForm";
+import { useNavigate } from "react-router-dom";
 
 export default function TaskCard({
   task,
@@ -47,6 +48,8 @@ export default function TaskCard({
     : Array.from(
         new Set([...(task.assigneeIds || []), task.createdBy])
       ).filter(Boolean);
+
+  const navigate = useNavigate();
 
   return (
     <div
@@ -198,6 +201,20 @@ export default function TaskCard({
                 }}
               >
                 Delete
+              </button>
+
+              <button
+                onClick={() => navigate(`/tasks/${task.id}`)}
+                style={{
+                  backgroundColor: "#4b5563",
+                  color: "white",
+                  border: "none",
+                  padding: "6px 10px",
+                  borderRadius: "5px",
+                  cursor: "pointer",
+                }}
+              >
+                Open Task
               </button>
 
               {isMajorTask && (
