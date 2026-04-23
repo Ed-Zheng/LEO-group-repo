@@ -1,17 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import TaskForm from "./TaskForm";
-import { useNavigate } from "react-router-dom";
 
 export default function TaskCard({
   task,
-  subtasks = [],
   onDelete,
   onUpdate,
-  onCreateSubtask,
   groupMembers = [],
   currentUserId,
-  depth = 0,
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const navigate = useNavigate();
@@ -31,7 +27,6 @@ export default function TaskCard({
   };
 
   const isCreator = currentUserId === task?.createdBy;
-  const isMajorTask = Boolean(task.isMajorTask) && !task.parentTaskId;
 
   const editMembers =
     groupMembers.length > 0
@@ -44,11 +39,7 @@ export default function TaskCard({
 
   const lockedAssigneeIds = isCreator
     ? [task.createdBy]
-    : Array.from(
-        new Set([...(task.assigneeIds || []), task.createdBy])
-      ).filter(Boolean);
-
-  const navigate = useNavigate();
+    : Array.from(new Set([...(task.assigneeIds || []), task.createdBy])).filter(Boolean);
 
   return (
     <div
@@ -175,17 +166,8 @@ export default function TaskCard({
                 fontWeight: 700,
               }}
             >
-              <span
-                style={{
-                  backgroundColor: priorityColors[task.priority] || "#6b7280",
-                  color: "white",
-                  padding: "4px 8px",
-                  borderRadius: "5px",
-                  fontSize: "12px",
-                }}
-              >
-                {task.priority}
-              </span>
+              Edit
+            </button>
 
             <button
               onClick={() => onDelete(task.id)}
