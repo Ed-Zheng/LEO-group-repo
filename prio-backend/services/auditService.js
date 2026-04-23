@@ -28,20 +28,30 @@ export async function getEntityAuditLog(entityId, maxResults = 50) {
   const snap = await db
     .collection("auditLogs")
     .where("entityId", "==", entityId)
-    .orderBy("timestamp", "desc")
-    .limit(maxResults)
     .get();
 
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => {
+      const aMs = a.timestamp?.toMillis?.() ?? 0;
+      const bMs = b.timestamp?.toMillis?.() ?? 0;
+      return bMs - aMs;
+    })
+    .slice(0, maxResults);
 }
 
 export async function getUserAuditLog(actorId, maxResults = 100) {
   const snap = await db
     .collection("auditLogs")
     .where("actorId", "==", actorId)
-    .orderBy("timestamp", "desc")
-    .limit(maxResults)
     .get();
 
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => {
+      const aMs = a.timestamp?.toMillis?.() ?? 0;
+      const bMs = b.timestamp?.toMillis?.() ?? 0;
+      return bMs - aMs;
+    })
+    .slice(0, maxResults);
 }

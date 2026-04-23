@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../services/AuthContext";
+import { API_BASE_URL } from "../services/api";
 import Navbar from "../components/Navbar";
 import TaskList from "../components/TaskList";
 import TaskForm from "../components/TaskForm";
@@ -29,7 +30,7 @@ export default function Dashboard() {
     const fetchUsers = async () => {
       try {
         setLoadingUsers(true);
-        const res = await fetch("http://localhost:5000/users");
+        const res = await fetch(`${API_BASE_URL}/users`);
 
         const text = await res.text();
         let data = [];
@@ -62,7 +63,7 @@ export default function Dashboard() {
       try {
         setLoadingTasks(true);
 
-        const res = await fetch(`http://localhost:5000/tasks/user/${user.uid}`);
+        const res = await fetch(`${API_BASE_URL}/tasks/user/${user.uid}`);
 
         const text = await res.text();
         let data = [];
@@ -125,7 +126,7 @@ export default function Dashboard() {
 
   async function handleDeleteTask(id) {
     try {
-      const res = await fetch(`http://localhost:5000/tasks/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/tasks/${id}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -186,7 +187,7 @@ export default function Dashboard() {
         actorId: user.uid,
       };
 
-      const res = await fetch(`http://localhost:5000/tasks/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/tasks/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -249,86 +250,146 @@ export default function Dashboard() {
   return (
     <div
       style={{
-        fontFamily: "Arial, sans-serif",
-        backgroundColor: "#111827",
+        fontFamily: "inherit",
         minHeight: "100vh",
         display: "flex",
         justifyContent: "center",
-        paddingTop: "40px",
+        padding: "36px 20px 56px",
       }}
     >
-      <div style={{ width: "100%", maxWidth: "1000px" }}>
-        <Navbar />
+      <div style={{ width: "100%", maxWidth: "1120px" }}>
+        <Navbar userId={user?.uid} />
 
         <div
           style={{
-            backgroundColor: "#1f2937",
-            padding: "30px",
-            borderRadius: "12px",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-            marginTop: "20px",
+            background: "rgba(255,255,255,0.9)",
+            padding: "28px",
+            borderRadius: "28px",
+            boxShadow: "var(--shadow-soft)",
+            border: "1px solid var(--border-soft)",
+            marginTop: "22px",
           }}
         >
-          {/* Header */}
           <div
             style={{
               display: "flex",
               justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "20px",
+              alignItems: "flex-start",
+              marginBottom: "22px",
+              gap: 18,
             }}
           >
-            <h1 style={{ margin: 0, color: "#f9fafb" }}>Dashboard</h1>
+            <div>
+              <p
+                style={{
+                  margin: 0,
+                  color: "var(--text-muted)",
+                  fontSize: 12,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
+                  fontWeight: 700,
+                }}
+              >
+                Workspace
+              </p>
+              <h1
+                style={{
+                  margin: "8px 0 6px",
+                  color: "var(--text-strong)",
+                  fontSize: "clamp(2rem, 3vw, 3rem)",
+                  letterSpacing: "-0.05em",
+                }}
+              >
+                Dashboard
+              </h1>
+              <p style={{ margin: 0, color: "var(--text-body)", maxWidth: 620, lineHeight: 1.6 }}>
+                Review your active work, coordinate responsibilities, and keep each task moving with a
+                calmer, cleaner overview.
+              </p>
+            </div>
 
             <button
               onClick={handleLogout}
               style={{
-                padding: "8px 12px",
-                backgroundColor: "#dc2626",
-                color: "white",
+                padding: "10px 14px",
+                backgroundColor: "var(--surface-panel-strong)",
+                color: "var(--text-strong)",
                 border: "none",
-                borderRadius: "5px",
+                borderRadius: "999px",
                 cursor: "pointer",
+                borderColor: "var(--border-soft)",
+                boxShadow: "inset 0 0 0 1px var(--border-soft)",
+                fontWeight: 700,
               }}
             >
               Logout
             </button>
           </div>
 
-          {/* Task Header */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+              gap: 14,
+              marginBottom: 24,
+            }}
+          >
+            <MetricCard label="Total tasks" value={tasks.length} />
+            <MetricCard
+              label="In progress"
+              value={tasks.filter((task) => task.status === "In Progress").length}
+            />
+            <MetricCard
+              label="Completed"
+              value={tasks.filter((task) => task.status === "Completed").length}
+            />
+            <MetricCard label="Teammates" value={selectableUsers.length} />
+          </div>
+
           <div
             style={{
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              marginBottom: "15px",
+              marginBottom: "18px",
+              gap: 16,
+              flexWrap: "wrap",
             }}
           >
-            <h2 style={{ color: "#e5e7eb" }}>Your Tasks</h2>
+            <div>
+              <h2 style={{ color: "var(--text-strong)", margin: 0, fontSize: 22, letterSpacing: "-0.03em" }}>
+                Your Tasks
+              </h2>
+              <p style={{ margin: "6px 0 0", color: "var(--text-muted)" }}>
+                Personal and shared work, organized in one place.
+              </p>
+            </div>
 
             <button
               onClick={() => setShowForm(!showForm)}
               style={{
-                padding: "10px 15px",
-                backgroundColor: "#2563eb",
-                color: "white",
+                padding: "11px 16px",
+                backgroundColor: "var(--accent-deep)",
+                color: "#ffffff",
                 border: "none",
-                borderRadius: "5px",
+                borderRadius: "999px",
                 cursor: "pointer",
+                fontWeight: 700,
+                boxShadow: "0 6px 14px rgba(53, 83, 84, 0.1)",
               }}
             >
               + Create Task
             </button>
           </div>
 
-          {/* Create Task Form */}
           {showForm && (
             <div
               style={{
-                backgroundColor: "#374151",
-                padding: "20px",
-                borderRadius: "10px",
-                marginBottom: "20px",
+                background: "var(--surface-panel-strong)",
+                padding: "22px",
+                borderRadius: "22px",
+                marginBottom: "22px",
+                border: "1px solid var(--border-soft)",
               }}
             >
               <TaskForm
@@ -338,7 +399,7 @@ export default function Dashboard() {
                       new Set([...(taskData.assigneeIds || []), user.uid])
                     );
 
-                    const res = await fetch("http://localhost:5000/tasks", {
+                    const res = await fetch(`${API_BASE_URL}/tasks`, {
                       method: "POST",
                       headers: {
                         "Content-Type": "application/json",
@@ -409,7 +470,7 @@ export default function Dashboard() {
           )}
 
           {loadingTasks ? (
-            <p style={{ color: "#e5e7eb" }}>Loading tasks...</p>
+            <p style={{ color: "var(--text-body)" }}>Loading tasks...</p>
           ) : (
             <TaskList
               tasks={tasks}
@@ -421,6 +482,35 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function MetricCard({ label, value }) {
+  return (
+    <div
+      style={{
+        padding: "16px 18px",
+        borderRadius: "20px",
+        background: "var(--surface-panel-strong)",
+        border: "1px solid var(--border-soft)",
+      }}
+    >
+      <p
+        style={{
+          margin: 0,
+          color: "var(--text-muted)",
+          fontSize: 11,
+          textTransform: "uppercase",
+          letterSpacing: "0.08em",
+          fontWeight: 700,
+        }}
+      >
+        {label}
+      </p>
+      <p style={{ margin: "10px 0 0", color: "var(--text-strong)", fontSize: 30, fontWeight: 700 }}>
+        {value}
+      </p>
     </div>
   );
 }

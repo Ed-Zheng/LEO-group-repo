@@ -1,0 +1,9 @@
+{
+  "name": "prio-workspace",
+  "private": true,
+  "scripts": {
+    "frontend": "npm --prefix prio-frontend run dev",
+    "backend": "npm --prefix prio-backend start",
+    "build": "npm --prefix prio-frontend run build"
+  }
+}
