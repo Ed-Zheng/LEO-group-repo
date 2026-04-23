@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import TaskForm from "./TaskForm";
 
 export default function TaskCard({
@@ -9,7 +10,7 @@ export default function TaskCard({
   currentUserId,
 }) {
   const [isEditing, setIsEditing] = useState(false);
-  const [showDetails, setShowDetails] = useState(false);
+  const navigate = useNavigate();
 
   if (!task) return null;
 
@@ -43,11 +44,12 @@ export default function TaskCard({
   return (
     <div
       style={{
-        backgroundColor: "#1f2937",
-        borderRadius: "10px",
-        padding: "15px",
-        marginBottom: "15px",
-        boxShadow: "0 2px 6px rgba(0,0,0,0.4)",
+        background: "rgba(255,255,255,0.94)",
+        borderRadius: "22px",
+        padding: "20px",
+        marginBottom: "16px",
+        border: "1px solid var(--border-soft)",
+        boxShadow: "0 8px 20px rgba(90, 103, 107, 0.06)",
       }}
     >
       {isEditing ? (
@@ -79,55 +81,89 @@ export default function TaskCard({
         />
       ) : (
         <>
-          <h3 style={{ color: "#f9fafb", marginBottom: "10px" }}>{task.title}</h3>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 18, alignItems: "flex-start" }}>
+            <div>
+              <h3 style={{ color: "var(--text-strong)", margin: 0, fontSize: 23, letterSpacing: "-0.03em" }}>
+                {task.title}
+              </h3>
+              {task.description ? (
+                <p style={{ margin: "10px 0 0", color: "var(--text-body)", lineHeight: 1.6, maxWidth: 620 }}>
+                  {task.description}
+                </p>
+              ) : null}
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+              <span
+                style={{
+                  backgroundColor: priorityColors[task.priority] || "#6b7280",
+                  color: "white",
+                  padding: "6px 10px",
+                  borderRadius: "999px",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  letterSpacing: "0.03em",
+                  textTransform: "uppercase",
+                }}
+              >
+                {task.priority}
+              </span>
+
+              <div
+                style={{
+                  borderRadius: "999px",
+                  padding: "2px",
+                  background: "var(--surface-muted)",
+                }}
+              >
+                <select
+                  value={task.status}
+                  onChange={(e) => onUpdate(task.id, { ...task, status: e.target.value })}
+                  style={{
+                    backgroundColor: statusColors[task.status] || "#6b7280",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "999px",
+                    padding: "6px 12px",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                  }}
+                >
+                  <option>Pending</option>
+                  <option>In Progress</option>
+                  <option>Completed</option>
+                </select>
+              </div>
+            </div>
+          </div>
 
           <div
             style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
+              marginTop: "16px",
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+              gap: 12,
             }}
           >
-            <span
-              style={{
-                backgroundColor: priorityColors[task.priority] || "#6b7280",
-                color: "white",
-                padding: "4px 8px",
-                borderRadius: "5px",
-                fontSize: "12px",
-              }}
-            >
-              {task.priority}
-            </span>
-
-            <select
-              value={task.status}
-              onChange={(e) => onUpdate(task.id, { ...task, status: e.target.value })}
-              style={{
-                backgroundColor: statusColors[task.status] || "#6b7280",
-                color: "white",
-                border: "none",
-                borderRadius: "5px",
-                padding: "4px 8px",
-              }}
-            >
-              <option>Pending</option>
-              <option>In Progress</option>
-              <option>Completed</option>
-            </select>
+            <div style={metaCardStyle}>
+              <p style={metaLabelStyle}>Deadline</p>
+              <p style={metaValueStyle}>{task.deadline || "No deadline set"}</p>
+            </div>
+            <div style={metaCardStyle}>
+              <p style={metaLabelStyle}>Assigned</p>
+              <p style={metaValueStyle}>
+                {task.assignees?.length
+                  ? task.assignees.map((a) => a.displayName || a.email).join(", ")
+                  : "Unassigned"}
+              </p>
+            </div>
           </div>
 
-          <div style={{ marginTop: "12px" }}>
+          <div style={{ marginTop: "18px", display: "flex", gap: "10px", flexWrap: "wrap" }}>
             <button
               onClick={() => setIsEditing(true)}
               style={{
-                marginRight: "10px",
-                backgroundColor: "#2563eb",
-                color: "white",
-                border: "none",
-                padding: "6px 10px",
-                borderRadius: "5px",
-                cursor: "pointer",
+                ...buttonStyle("var(--accent-soft)", "var(--accent-deep)"),
+                fontWeight: 700,
               }}
             >
               Edit
@@ -135,69 +171,57 @@ export default function TaskCard({
 
             <button
               onClick={() => onDelete(task.id)}
-              style={{
-                backgroundColor: "#dc2626",
-                color: "white",
-                border: "none",
-                padding: "6px 10px",
-                borderRadius: "5px",
-                cursor: "pointer",
-              }}
+              style={buttonStyle("var(--danger-soft)", "var(--danger-text)")}
             >
               Delete
             </button>
 
             <button
-              onClick={() => setShowDetails((prev) => !prev)}
-              style={{
-                marginTop: "10px",
-                backgroundColor: "#374151",
-                color: "white",
-                border: "none",
-                padding: "5px 10px",
-                borderRadius: "5px",
-                cursor: "pointer",
-                display: "block",
-              }}
+              onClick={() => navigate(`/tasks/${task.id}`)}
+              style={buttonStyle("var(--accent-deep)", "#ffffff")}
             >
-              {showDetails ? "Hide Details" : "View Details"}
+              View Details
             </button>
-
-            {showDetails && (
-              <div
-                style={{
-                  marginTop: "10px",
-                  padding: "10px",
-                  backgroundColor: "#111827",
-                  borderRadius: "8px",
-                  color: "#e5e7eb",
-                }}
-              >
-                {task.description && (
-                  <p>
-                    <strong>Description:</strong> {task.description}
-                  </p>
-                )}
-
-                {task.deadline && (
-                  <p>
-                    <strong>Deadline:</strong> {task.deadline}
-                  </p>
-                )}
-
-                {task.assignees && task.assignees.length > 0 && (
-                  <p>
-                    <strong>Assigned to:</strong>{" "}
-                    {task.assignees.map((a) => a.displayName || a.email).join(", ")}
-                  </p>
-                )}
-              </div>
-            )}
           </div>
         </>
       )}
     </div>
   );
+}
+
+const metaCardStyle = {
+  padding: "12px 14px",
+  borderRadius: "16px",
+  background: "var(--surface-muted)",
+  border: "1px solid rgba(108, 128, 123, 0.1)",
+};
+
+const metaLabelStyle = {
+  margin: 0,
+  fontSize: "11px",
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+  color: "var(--text-muted)",
+  fontWeight: 700,
+};
+
+const metaValueStyle = {
+  margin: "6px 0 0",
+  color: "var(--text-strong)",
+  fontSize: "14px",
+  lineHeight: 1.5,
+};
+
+function buttonStyle(backgroundColor, color = "#ffffff") {
+  return {
+    backgroundColor,
+    color,
+    border: "none",
+    padding: "9px 14px",
+    borderRadius: "999px",
+    cursor: "pointer",
+    boxShadow: "none",
+  };
 }
 
 function normalizePriority(priority) {

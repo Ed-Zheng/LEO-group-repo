@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { auth } from './firebase';
+import { auth, firebaseSetupError } from './Firebase';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 import { createUserWithEmailAndPassword } from "firebase/auth";
+import { API_BASE_URL } from "./api";
 
 const AuthContext = createContext();
 
@@ -10,6 +11,11 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!auth) {
+      setLoading(false);
+      return undefined;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setLoading(false);
@@ -18,6 +24,10 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password) => {
+    if (!auth) {
+      throw new Error(firebaseSetupError || "Firebase is not configured");
+    }
+
     setLoading(true);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -47,6 +57,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
+    if (!auth) {
+      throw new Error(firebaseSetupError || "Firebase is not configured");
+    }
+
     try {
       await signOut(auth);
       setUser(null);
@@ -57,6 +71,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (name, email, password) => {
+    if (!auth) {
+      throw new Error(firebaseSetupError || "Firebase is not configured");
+    }
+
     setLoading(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(
@@ -67,7 +85,7 @@ export const AuthProvider = ({ children }) => {
 
       const user = userCredential.user;
 
-      await fetch("http://localhost:5000/users", {
+      await fetch(`${API_BASE_URL}/users`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
