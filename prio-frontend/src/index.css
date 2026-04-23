@@ -1,22 +1,39 @@
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: "SF Pro Display", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  color: #22313f;
+  background: linear-gradient(180deg, #f6f3ee 0%, #eef2f0 52%, #e7ece8 100%);
 
-  color: #f3f4f6;              /* light text */
-  background-color: #1f2937;  /* dark gray (nice, not too black) */
+  --surface-page: #f6f3ee;
+  --surface-panel: rgba(255, 255, 255, 0.72);
+  --surface-panel-strong: rgba(255, 255, 255, 0.9);
+  --surface-card: rgba(255, 255, 255, 0.82);
+  --surface-muted: #edf1ee;
+  --border-soft: rgba(108, 128, 123, 0.18);
+  --text-strong: #22313f;
+  --text-body: #4e5f62;
+  --text-muted: #778486;
+  --accent: #4c6b6b;
+  --accent-deep: #355354;
+  --accent-soft: #dce9e4;
+  --danger-soft: #f3d8d4;
+  --danger-text: #8d4a42;
+  --shadow-soft: 0 10px 26px rgba(78, 95, 98, 0.08);
 }
 
 a {
   font-weight: 500;
-  color: #646cff;
+  color: var(--accent-deep);
   text-decoration: inherit;
 }
 a:hover {
-  color: #535bf2;
+  color: var(--accent);
 }
 
 body {
   margin: 0;
-  background-color: #1f2937;
+  min-width: 320px;
+  background: linear-gradient(180deg, #f6f3ee 0%, #eef2f0 52%, #e7ece8 100%);
+  color: var(--text-strong);
 }
 
 h1 {
@@ -34,10 +51,9 @@ button {
   cursor: pointer;
 }
 button:hover {
-  border-color: #646cff;
+  border-color: var(--accent);
 }
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
-

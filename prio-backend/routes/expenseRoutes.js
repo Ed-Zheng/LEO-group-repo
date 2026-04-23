@@ -10,7 +10,6 @@ import {
 
 const router = express.Router();
 
-// POST /expenses
 router.post("/", async (req, res) => {
   try {
     const { taskId, groupId, amount, currency, description, submittedBy } = req.body;
@@ -26,19 +25,16 @@ router.post("/", async (req, res) => {
   }
 });
 
-// GET /expenses/group/:groupId
 router.get("/group/:groupId", async (req, res) => {
   const data = await getGroupExpenses(req.params.groupId);
   res.json(data);
 });
 
-// GET /expenses/task/:taskId
 router.get("/task/:taskId", async (req, res) => {
   const data = await getTaskExpenses(req.params.taskId);
   res.json(data);
 });
 
-// PUT /expenses/:id
 router.put("/:id", async (req, res) => {
   try {
     const { amount, description, actorId } = req.body;
@@ -49,7 +45,6 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-// DELETE /expenses/:id
 router.delete("/:id", async (req, res) => {
   try {
     const { actorId } = req.body;
@@ -60,7 +55,6 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-// GET /expenses/summary/:groupId
 router.get("/summary/:groupId", async (req, res) => {
   const data = await getGroupExpenseSummary(req.params.groupId);
   res.json(data);

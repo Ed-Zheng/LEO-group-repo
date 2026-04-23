@@ -224,9 +224,14 @@ export default function TaskForm({
       </div>
 
       {/* Assignees */}
-      {groupMembers.length > 0 && (
-        <div>
-          <label style={labelStyle}>Assign to</label>
+      <div>
+        <label style={labelStyle}>Assign to</label>
+
+        {groupMembers.length === 0 ? (
+          <p style={{ fontSize: "13px", color: "#6b7280" }}>
+            No teammates available. Join or create a group first.
+          </p>
+        ) : (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {groupMembers.map((member) => {
               const selected = form.assigneeIds.includes(member.uid);
@@ -275,8 +280,8 @@ export default function TaskForm({
               );
             })}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Actions */}
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", paddingTop: 4 }}>

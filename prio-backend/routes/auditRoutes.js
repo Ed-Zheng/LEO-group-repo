@@ -17,7 +17,6 @@ router.get("/entity/:entityId", async (req, res) => {
   }
 });
 
-// GET /audit/user/:actorId
 router.get("/user/:actorId", async (req, res) => {
   try {
     const maxResults = req.query.limit ? Number(req.query.limit) : 100;

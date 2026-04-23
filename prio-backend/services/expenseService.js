@@ -1,26 +1,15 @@
-/**
- * expenseService.js
- * Log, retrieve, update, and delete task-linked expenses.
- */
-
 import admin from "firebase-admin";
 import { db } from "../firebase.js";
 import { logAudit } from "./auditService.js";
 
-/**
- * Log a new expense tied to a task.
- * @param {object} data – { taskId, groupId, amount, currency, description }
- * @param {string} submittedBy – uid
- * @returns {Promise<string>} expenseId
- */
 export async function createExpense(data, submittedBy) {
-  if (!data.taskId || !data.groupId) throw new Error("taskId and groupId are required.");
+  if (!data.taskId) throw new Error("taskId is required.");
   if (typeof data.amount !== "number" || data.amount <= 0) throw new Error("Amount must be a positive number.");
   if (!data.description?.trim()) throw new Error("Description is required.");
 
   const payload = {
     taskId: data.taskId,
-    groupId: data.groupId,
+    groupId: data.groupId ?? null,
     amount: data.amount,
     currency: data.currency ?? "USD",
     description: data.description.trim(),
@@ -33,42 +22,36 @@ export async function createExpense(data, submittedBy) {
   return ref.id;
 }
 
-/**
- * Get all expenses for a group, newest first.
- * @param {string} groupId
- * @returns {Promise<object[]>}
- */
 export async function getGroupExpenses(groupId) {
   const snap = await db
     .collection("expenses")
     .where("groupId", "==", groupId)
-    .orderBy("createdAt", "desc")
     .get();
 
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => {
+      const aMs = a.createdAt?.toMillis?.() ?? 0;
+      const bMs = b.createdAt?.toMillis?.() ?? 0;
+      return bMs - aMs;
+    });
 }
 
-/**
- * Get all expenses linked to a specific task.
- * @param {string} taskId
- * @returns {Promise<object[]>}
- */
 export async function getTaskExpenses(taskId) {
   const snap = await db
     .collection("expenses")
     .where("taskId", "==", taskId)
-    .orderBy("createdAt", "desc")
     .get();
 
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => {
+      const aMs = a.createdAt?.toMillis?.() ?? 0;
+      const bMs = b.createdAt?.toMillis?.() ?? 0;
+      return bMs - aMs;
+    });
 }
 
-/**
- * Update an expense (description/amount only).
- * @param {string} expenseId
- * @param {object} updates – { amount?, description? }
- * @param {string} actorId
- */
 export async function updateExpense(expenseId, updates, actorId) {
   if (updates.amount !== undefined && (typeof updates.amount !== "number" || updates.amount <= 0)) {
     throw new Error("Amount must be a positive number.");
@@ -86,11 +69,6 @@ export async function updateExpense(expenseId, updates, actorId) {
   await logAudit(actorId, "expense.updated", "expense", expenseId, before, payload);
 }
 
-/**
- * Delete an expense.
- * @param {string} expenseId
- * @param {string} actorId
- */
 export async function deleteExpense(expenseId, actorId) {
   const ref = db.collection("expenses").doc(expenseId);
   const beforeSnap = await ref.get();
@@ -100,11 +78,6 @@ export async function deleteExpense(expenseId, actorId) {
   await logAudit(actorId, "expense.deleted", "expense", expenseId, before, null);
 }
 
-/**
- * Compute total expenses for a group broken down by task.
- * @param {string} groupId
- * @returns {Promise<{ total: number, byTask: Record<string, number> }>}
- */
 export async function getGroupExpenseSummary(groupId) {
   const expenses = await getGroupExpenses(groupId);
   const byTask = {};

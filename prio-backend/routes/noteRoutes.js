@@ -8,7 +8,6 @@ import {
 
 const router = express.Router();
 
-// GET /notes/task/:taskId
 router.get("/task/:taskId", async (req, res) => {
   try {
     const notes = await getTaskNotes(req.params.taskId);
@@ -18,7 +17,6 @@ router.get("/task/:taskId", async (req, res) => {
   }
 });
 
-// POST /notes
 router.post("/", async (req, res) => {
   try {
     const { taskId, groupId, authorId, authorName, text, pinned } = req.body;
@@ -38,7 +36,6 @@ router.post("/", async (req, res) => {
   }
 });
 
-// PUT /notes/:id
 router.put("/:id", async (req, res) => {
   try {
     const { text, pinned, actorId } = req.body;
@@ -49,7 +46,6 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-// DELETE /notes/:id
 router.delete("/:id", async (req, res) => {
   try {
     const { actorId } = req.body;

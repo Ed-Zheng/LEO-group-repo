@@ -1,10 +1,6 @@
 import admin from "firebase-admin";
 import { db } from "../firebase.js";
 
-/**
- * Create a notification for a user.
- * @param {object} data – { recipientId, type, message, taskId?, groupId? }
- */
 export async function createNotification(data) {
   await db.collection("notifications").add({
     recipientId: data.recipientId,
@@ -17,29 +13,31 @@ export async function createNotification(data) {
   });
 }
 
-/**
- * Helper: notify multiple users at once.
- * @param {string[]} uids
- * @param {object} notifData – { type, message, taskId?, groupId? }
- */
 export async function notifyUsers(uids, notifData) {
   await Promise.all(
     uids.map((uid) => createNotification({ ...notifData, recipientId: uid }))
   );
 }
 
-/**
- * Mark a single notification as read.
- * @param {string} notificationId
- */
+export async function getUserNotifications(uid) {
+  const snap = await db
+    .collection("notifications")
+    .where("recipientId", "==", uid)
+    .get();
+
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => {
+      const aMs = a.createdAt?.toMillis?.() ?? 0;
+      const bMs = b.createdAt?.toMillis?.() ?? 0;
+      return bMs - aMs;
+    });
+}
+
 export async function markAsRead(notificationId) {
   await db.collection("notifications").doc(notificationId).update({ read: true });
 }
 
-/**
- * Mark all unread notifications for a user as read.
- * @param {string} uid
- */
 export async function markAllAsRead(uid) {
   const snap = await db
     .collection("notifications")
@@ -54,15 +52,10 @@ export async function markAllAsRead(uid) {
   await batch.commit();
 }
 
-/**
- * Delete a notification.
- * @param {string} notificationId
- */
 export async function deleteNotification(notificationId) {
   await db.collection("notifications").doc(notificationId).delete();
 }
 
-// Convenience creators
 export async function notifyDeadlineApproaching(uids, taskId, taskTitle, groupId) {
   await notifyUsers(uids, {
     type: "deadline_approaching",

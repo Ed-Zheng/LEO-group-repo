@@ -2,14 +2,9 @@ import admin from "firebase-admin";
 import { db } from "../firebase.js";
 import { logAudit } from "./auditService.js";
 
-/**
- * Create a note on a task
- * @param {object} data - { taskId, groupId, authorId, authorName, text, pinned? }
- * @returns {Promise<string>}
- */
 export async function createTaskNote(data) {
-  if (!data.taskId || !data.groupId || !data.authorId) {
-    throw new Error("taskId, groupId, and authorId are required.");
+  if (!data.taskId || !data.authorId) {
+    throw new Error("taskId and authorId are required.");
   }
 
   if (!data.text?.trim()) {
@@ -18,7 +13,7 @@ export async function createTaskNote(data) {
 
   const payload = {
     taskId: data.taskId,
-    groupId: data.groupId,
+    groupId: data.groupId ?? null,
     authorId: data.authorId,
     authorName: data.authorName ?? "Unknown User",
     text: data.text.trim(),
@@ -38,12 +33,6 @@ export async function createTaskNote(data) {
   return ref.id;
 }
 
-/**
- * Get all notes for a task.
- * Pinned notes first, then oldest to newest within each pinned bucket.
- * @param {string} taskId
- * @returns {Promise<object[]>}
- */
 export async function getTaskNotes(taskId) {
   const snap = await db
     .collection("taskNotes")
@@ -60,12 +49,6 @@ export async function getTaskNotes(taskId) {
     });
 }
 
-/**
- * Update note text and/or pin status
- * @param {string} noteId
- * @param {object} updates - { text?, pinned? }
- * @param {string} actorId
- */
 export async function updateTaskNote(noteId, updates, actorId) {
   const ref = db.collection("taskNotes").doc(noteId);
   const beforeSnap = await ref.get();
@@ -91,15 +74,9 @@ export async function updateTaskNote(noteId, updates, actorId) {
   }
 
   await ref.update(payload);
-
   await logAudit(actorId, "note.updated", "task", before.taskId, before, payload);
 }
 
-/**
- * Delete a note
- * @param {string} noteId
- * @param {string} actorId
- */
 export async function deleteTaskNote(noteId, actorId) {
   const ref = db.collection("taskNotes").doc(noteId);
   const beforeSnap = await ref.get();

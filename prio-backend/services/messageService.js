@@ -4,11 +4,6 @@ import { logAudit } from "./auditService.js";
 import { getTask } from "./taskService.js";
 import { notifyMessageReceived } from "./notificationService.js";
 
-/**
- * Create a message on a task
- * @param {object} data - { taskId, groupId, senderId, senderName, text }
- * @returns {Promise<string>}
- */
 export async function createTaskMessage(data) {
   if (!data.taskId || !data.senderId) {
     throw new Error("taskId and senderId are required.");
@@ -29,7 +24,6 @@ export async function createTaskMessage(data) {
 
   const ref = await db.collection("taskMessages").add(payload);
 
-  // Notify other assignees
   const task = await getTask(data.taskId);
   const assignees = task?.assigneeIds ?? [];
   const recipients = assignees.filter((uid) => uid !== data.senderId);
@@ -44,7 +38,6 @@ export async function createTaskMessage(data) {
     );
   }
 
-  // Audit log
   await logAudit(data.senderId, "message.created", "task", data.taskId, null, {
     messageId: ref.id,
     text: payload.text,
@@ -53,11 +46,6 @@ export async function createTaskMessage(data) {
   return ref.id;
 }
 
-/**
- * Get all messages for a task (no Firestore index required)
- * @param {string} taskId
- * @returns {Promise<object[]>}
- */
 export async function getTaskMessages(taskId) {
   const snap = await db
     .collection("taskMessages")

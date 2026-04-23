@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+
 import noteRoutes from "./routes/noteRoutes.js";
 import taskRoutes from "./routes/taskRoutes.js";
 import groupRoutes from "./routes/groupRoutes.js";
@@ -10,16 +11,34 @@ import messageRoutes from "./routes/messageRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 
 const app = express();
+const allowedOrigin = process.env.FRONTEND_ORIGIN || "http://localhost:5173";
 
-app.use(cors());
+app.use(
+  cors({
+    origin: allowedOrigin,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", allowedOrigin);
+  res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+
+  next();
+});
+
 app.use(express.json());
 
-// Test route
 app.get("/", (req, res) => {
   res.send("Prio backend running");
 });
 
-// Routes
 app.use("/tasks", taskRoutes);
 app.use("/groups", groupRoutes);
 app.use("/expenses", expenseRoutes);
@@ -30,7 +49,12 @@ app.use("/notes", noteRoutes);
 app.use("/users", userRoutes);
 
 const PORT = 5000;
+const HOST = process.env.HOST || "127.0.0.1";
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+const server = app.listen(PORT, HOST, () => {
+  console.log(`Server running on http://${HOST}:${PORT}`);
+});
+
+server.on("error", (error) => {
+  console.error("Backend server failed to start:", error);
 });

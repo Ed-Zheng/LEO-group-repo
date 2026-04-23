@@ -1,6 +1,7 @@
 import express from "express";
 import {
   createNotification,
+  getUserNotifications,
   markAsRead,
   markAllAsRead,
   deleteNotification,
@@ -8,7 +9,15 @@ import {
 
 const router = express.Router();
 
-// POST /notifications
+router.get("/user/:uid", async (req, res) => {
+  try {
+    const notifications = await getUserNotifications(req.params.uid);
+    res.json(notifications);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.post("/", async (req, res) => {
   try {
     const { recipientId, type, message, taskId, groupId } = req.body;
@@ -19,7 +28,6 @@ router.post("/", async (req, res) => {
   }
 });
 
-// PUT /notifications/:id/read
 router.put("/:id/read", async (req, res) => {
   try {
     await markAsRead(req.params.id);
@@ -29,7 +37,6 @@ router.put("/:id/read", async (req, res) => {
   }
 });
 
-// PUT /notifications/user/:uid/read-all
 router.put("/user/:uid/read-all", async (req, res) => {
   try {
     await markAllAsRead(req.params.uid);
@@ -39,7 +46,6 @@ router.put("/user/:uid/read-all", async (req, res) => {
   }
 });
 
-// DELETE /notifications/:id
 router.delete("/:id", async (req, res) => {
   try {
     await deleteNotification(req.params.id);

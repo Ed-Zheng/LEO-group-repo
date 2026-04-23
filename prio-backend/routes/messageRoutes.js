@@ -6,7 +6,6 @@ import {
 
 const router = express.Router();
 
-// GET /messages/task/:taskId
 router.get("/task/:taskId", async (req, res) => {
   try {
     const messages = await getTaskMessages(req.params.taskId);
@@ -16,7 +15,6 @@ router.get("/task/:taskId", async (req, res) => {
   }
 });
 
-// POST /messages
 router.post("/", async (req, res) => {
   try {
     const { taskId, groupId, senderId, senderName, text } = req.body;
