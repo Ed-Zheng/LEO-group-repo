@@ -20,15 +20,19 @@ export default function Dashboard() {
   const navigate = useNavigate();
 
   const selectableUsers = useMemo(() => {
-    return groupMembers.length > 0
-      ? groupMembers.filter((u) => u.uid !== user?.uid)
-      : users
-          .filter((u) => u.uid !== user?.uid)
-          .map((u) => ({
+    const safeGroupMembers = Array.isArray(groupMembers) ? groupMembers : [];
+    const safeUsers = Array.isArray(users) ? users : [];
+
+    const baseUsers =
+      safeGroupMembers.length > 0
+        ? safeGroupMembers
+        : safeUsers.map((u) => ({
             uid: u.uid,
             displayName: u.name,
             email: u.email,
           }));
+
+    return baseUsers.filter((u) => u.uid !== user?.uid);
   }, [groupMembers, users, user]);
 
   useEffect(() => {
@@ -90,7 +94,7 @@ export default function Dashboard() {
           isMajorTask: Boolean(task.isMajorTask),
           parentTaskId: task.parentTaskId ?? null,
           assignees:
-            task.assigneeIds?.map((uid) => resolveAssignee(uid, users, user)) || [],
+            task.assigneeIds?.map((uid) => resolveAssignee(uid, users, groupMembers, user)) || [],
         }));
 
         setTasks(normalizedTasks);
@@ -471,21 +475,40 @@ export default function Dashboard() {
   );
 }
 
-function resolveAssignee(uid, users, currentUser) {
-  const matchedUser = users.find((u) => u.uid === uid);
+function resolveAssignee(uid, users, groupMembers, currentUser) {
+  const safeUsers = Array.isArray(users) ? users : [];
+  const safeGroupMembers = Array.isArray(groupMembers) ? groupMembers : [];
+
+  const matchedRealUser = safeUsers.find((u) => u.uid === uid);
+  const matchedGroupMember = safeGroupMembers.find((u) => u.uid === uid);
 
   if (uid === currentUser?.uid) {
     return {
       uid,
-      displayName: matchedUser?.name || matchedUser?.displayName || "You",
-      email: matchedUser?.email || currentUser?.email || "",
+      displayName:
+        matchedRealUser?.name ||
+        matchedGroupMember?.displayName ||
+        "You",
+      email:
+        matchedRealUser?.email ||
+        matchedGroupMember?.email ||
+        currentUser?.email ||
+        "",
     };
   }
 
   return {
     uid,
-    displayName: matchedUser?.name || matchedUser?.displayName || "Unknown User",
-    email: matchedUser?.email || "",
+    displayName:
+      matchedRealUser?.name ||
+      matchedGroupMember?.displayName ||
+      matchedRealUser?.email ||
+      matchedGroupMember?.email ||
+      "Unknown User",
+    email:
+      matchedRealUser?.email ||
+      matchedGroupMember?.email ||
+      "",
   };
 }
 

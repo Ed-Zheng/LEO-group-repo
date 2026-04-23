@@ -43,8 +43,10 @@ export default function TaskList({
     subtasksByParent[key] = sortTasks(subtasksByParent[key]);
   });
 
+  const parentIds = new Set(validTasks.map((task) => task.id));
+
   const topLevelTasks = sortTasks(
-    validTasks.filter((task) => !task.parentTaskId)
+    validTasks.filter((task) => !task.parentTaskId || !parentIds.has(task.parentTaskId))
   );
 
   return (

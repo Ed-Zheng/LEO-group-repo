@@ -10,8 +10,8 @@ import { notifyMessageReceived } from "./notificationService.js";
  * @returns {Promise<string>}
  */
 export async function createTaskMessage(data) {
-  if (!data.taskId || !data.groupId || !data.senderId) {
-    throw new Error("taskId, groupId, and senderId are required.");
+  if (!data.taskId || !data.senderId) {
+    throw new Error("taskId and senderId are required.");
   }
 
   if (!data.text?.trim()) {
@@ -20,7 +20,7 @@ export async function createTaskMessage(data) {
 
   const payload = {
     taskId: data.taskId,
-    groupId: data.groupId,
+    groupId: data.groupId ?? null,
     senderId: data.senderId,
     senderName: data.senderName ?? "Unknown User",
     text: data.text.trim(),
