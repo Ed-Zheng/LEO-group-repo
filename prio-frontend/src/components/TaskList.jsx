@@ -1,29 +1,9 @@
 import TaskCard from "./TaskCard";
 
-const PRIORITY_ORDER = {
-  High: 3,
-  Medium: 2,
-  Low: 1,
-};
-
-function sortTasks(tasks) {
-  return [...tasks].sort((a, b) => {
-    const majorA = a.isMajorTask ? 1 : 0;
-    const majorB = b.isMajorTask ? 1 : 0;
-
-    if (majorA !== majorB) {
-      return majorB - majorA;
-    }
-
-    return (PRIORITY_ORDER[b.priority] || 0) - (PRIORITY_ORDER[a.priority] || 0);
-  });
-}
-
 export default function TaskList({
   tasks = [],
   onDelete,
   onUpdate,
-  onCreateSubtask,
   groupMembers = [],
   currentUserId,
 }) {
@@ -56,10 +36,8 @@ export default function TaskList({
         <TaskCard
           key={task.id}
           task={task}
-          subtasks={subtasksByParent[task.id] || []}
           onDelete={onDelete}
           onUpdate={onUpdate}
-          onCreateSubtask={onCreateSubtask}
           groupMembers={groupMembers}
           currentUserId={currentUserId}
         />
